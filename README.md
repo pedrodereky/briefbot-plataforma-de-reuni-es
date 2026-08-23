@@ -14,10 +14,6 @@ Plataforma de reuniões inteligentes com videoconferência (LiveKit), transcriç
 
 ---
 
-## ⚠️ Após fazer remix deste projeto
-
-Este projeto depende de um **trigger no schema `auth`** (`on_auth_user_created` em `auth.users`) que cria automaticamente uma linha em `public.user_settings` para cada novo cadastro. **O Lovable não replica objetos do schema `auth` em remixes**, então sem este trigger o cadastro de novos usuários quebra (o usuário é criado em `auth.users` mas nunca recebe `user_settings`, e o app fica preso no onboarding).
-
 ### Auto-reparo (esperado)
 
 O app tenta se auto-reparar **na primeira execução** chamando a Edge Function `ensure-auth-trigger`, que:
