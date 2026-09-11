@@ -116,21 +116,51 @@ e o id sozinho não dá acesso a nada.
 
 ---
 
-## Checklist pós-remix
+## Roteiro de implantação
 
-Itens essenciais para o app funcionar 100% (ver KB do projeto para detalhes):
+Na ordem. O primeiro item é de segurança e não deve esperar pelos demais.
 
-- [ ] Trigger `on_auth_user_created` em `auth.users` instalado (ver auto-reparo acima)
-- [ ] Migrations aplicadas (`supabase/migrations/`) — inclui a correção de
-      privilégio das funções `SECURITY DEFINER`, sem a qual as chaves do Vault
-      ficam legíveis por requisição anônima
-- [ ] `ALLOWED_ORIGINS` configurada nas edge functions
+**1. Aplicar as migrations** — `supabase/migrations/`
+
+Enquanto não forem aplicadas, `get_user_secret` continua executável por
+requisição **anônima** via PostgREST, o que expõe as chaves decriptadas de
+LiveKit, Deepgram e Resend de qualquer usuário. A migration da Fase 1 revoga
+`EXECUTE` de `PUBLIC` em todas as funções `SECURITY DEFINER` e é idempotente.
+
+**2. Reconciliar o schema** — `supabase db pull`
+
+O baseline foi reconstruído a partir dos tipos gerados e do código, não de um
+dump. Compare com o banco real e ajuste divergências. Depois rode
+`supabase gen types typescript --linked` para regerar
+`src/integrations/supabase/types.ts`, que recebeu edições manuais
+(`join_token`, colunas `recording_*`, `verify_join_token`).
+
+**3. Configurar as variáveis das edge functions**
+
+- [ ] `ALLOWED_ORIGINS` — sem ela o CORS segue liberado para qualquer origem
+- [ ] `CRON_SECRET` — habilita o caminho dedicado do cron
+- [ ] `RECORDING_S3_BUCKET` / `_REGION` / `_ACCESS_KEY` / `_SECRET` — sem elas a
+      gravação é recusada de forma explícita
+- [ ] `APP_URL` — domínio usado nos links de convite dos e-mails
+- [ ] `VITE_SENTRY_DSN` no frontend (opcional)
+
+**4. Ativar o cron** — preencher `public.app_config` (SQL na seção "Agenda")
+
+**5. Conferir o restante**
+
+- [ ] 17 edge functions deployadas
 - [ ] Realtime habilitado em `meetings` e `meeting_transcripts`
-- [ ] `RECORDING_S3_*` configuradas, se for usar gravação
-- [ ] 17 edge functions deployadas (incluindo `ensure-auth-trigger`)
 - [ ] Auth email/senha habilitado
-- [ ] `public.app_config` preenchida (ativa o cron versionado — ver acima)
+- [ ] Trigger `on_auth_user_created` presente (a migration instala; o
+      auto-reparo em runtime é só rede de proteção)
 - [ ] Onboarding executado com LiveKit + Deepgram + Resend
+
+**6. Validar em homologação o que não pôde ser testado automaticamente**
+
+- [ ] Gravar uma reunião de ponta a ponta: o caminho do egress S3 e o evento
+      `egress_ended` foram escritos a partir da API do SDK, sem execução contra
+      uma conta real
+- [ ] Enviar um convite por e-mail e uma mensagem ao Slack
 
 ---
 

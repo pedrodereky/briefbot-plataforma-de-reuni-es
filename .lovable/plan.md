@@ -66,8 +66,28 @@ BEGIN
     FROM vault.decrypted_secrets WHERE id = v_secret_id;
   RETURN v_value;
 END $$;
-REVOKE EXECUTE ON FUNCTION public.get_user_secret FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.get_user_secret FROM PUBLIC, anon, authenticated;
+GRANT  EXECUTE ON FUNCTION public.get_user_secret TO service_role;
 ```
+
+> ⚠️ **CORREÇÃO — a versão original desta linha não protegia nada.**
+>
+> Este documento trazia `REVOKE ... FROM anon, authenticated`, que é **no-op**:
+> o PostgreSQL concede `EXECUTE` a `PUBLIC` por padrão ao criar a função, e
+> `PUBLIC` abrange `anon`. Revogar do papel sem revogar de `PUBLIC` não tira
+> nada.
+>
+> Como o PostgREST expõe funções de `public` como RPC, o efeito era uma
+> requisição **anônima** a `POST /rest/v1/rpc/get_user_secret` devolver o
+> segredo já decriptado do Vault de qualquer usuário — LiveKit, Deepgram e
+> Resend de todas as contas.
+>
+> Descoberto ao testar as migrations contra um PostgreSQL real e corrigido em
+> `supabase/migrations/20260911130000_fase1_join_token_e_rls.sql`, que reaplica
+> a revogação correta sobre todas as funções `SECURITY DEFINER`. Há teste de
+> schema que falha se alguma voltar a ser executável por `anon`.
+>
+> **Ao criar qualquer nova função `SECURITY DEFINER`, revogue de `PUBLIC`.**
 
 (Apenas edge functions com `service_role` chamarão essa função.)
 
@@ -89,7 +109,12 @@ Substituir leitura de `user_settings.*_api_key` por chamada a `supabase.rpc('get
 - `end-meeting` — lê 3 keys LiveKit
 - `send-invite` — lê `resend_api_key` (mantém `sender_email`/`sender_name` em `user_settings`)
 - `send-reminder` — idem
-- `livekit-webhook` — sem alteração (usa env vars globais)
+- `livekit-webhook` — **desatualizado**: este documento dizia "sem alteração
+  (usa env vars globais)", e era justamente isso que quebrava o webhook para
+  quem fez onboarding com as próprias credenciais — a assinatura era verificada
+  com uma chave diferente da que assinou. Desde a Fase 2 ele localiza a reunião
+  pelo nome da sala e verifica a assinatura com as chaves do dono, lidas do
+  Vault.
 
 ### 4. Onboarding Wizard — refatorado
 
