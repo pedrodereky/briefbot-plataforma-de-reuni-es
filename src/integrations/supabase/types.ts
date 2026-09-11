@@ -1,3 +1,9 @@
+// NOTA: arquivo normalmente gerado por `supabase gen types`. As colunas
+// join_token/join_token_expires_at e a RPC verify_join_token foram acrescentadas
+// à mão junto da migration 20260911130000, porque esta sessão não tem
+// credenciais para regerar. Rode `supabase gen types typescript --linked` e
+// substitua este arquivo assim que possível.
+
 export type Json =
   | string
   | number
@@ -218,6 +224,8 @@ export type Database = {
           description: string | null
           ends_at: string | null
           id: string
+          join_token: string
+          join_token_expires_at: string | null
           livekit_room_name: string | null
           meeting_status: string | null
           organizer: string | null
@@ -234,6 +242,8 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           id?: string
+          join_token?: string
+          join_token_expires_at?: string | null
           livekit_room_name?: string | null
           meeting_status?: string | null
           organizer?: string | null
@@ -250,6 +260,8 @@ export type Database = {
           description?: string | null
           ends_at?: string | null
           id?: string
+          join_token?: string
+          join_token_expires_at?: string | null
           livekit_room_name?: string | null
           meeting_status?: string | null
           organizer?: string | null
@@ -323,6 +335,15 @@ export type Database = {
       set_secret_validation: {
         Args: { _service: string; _status: string; _user_id: string }
         Returns: undefined
+      }
+      verify_join_token: {
+        Args: { _meeting_id: string; _token: string }
+        Returns: {
+          meeting_id: string
+          user_id: string
+          title: string
+          meeting_status: string
+        }[]
       }
       store_user_secret: {
         Args: { _service: string; _user_id: string; _value: string }

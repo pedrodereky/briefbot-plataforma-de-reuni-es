@@ -49,3 +49,17 @@ jobs:
           VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
           VITE_SUPABASE_PROJECT_ID: ci
         run: npm run build
+
+  schema:
+    name: Migrations · Schema
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # O runner do GitHub já traz PostgreSQL instalado (parado por padrão).
+      # O script sobe uma instância própria e efêmera, então não precisa de
+      # service container.
+      - name: Aplicar migrations e rodar testes de schema
+        run: ./scripts/test-migrations.sh

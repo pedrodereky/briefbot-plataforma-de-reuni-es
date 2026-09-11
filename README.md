@@ -52,6 +52,21 @@ Secrets de plataforma (já presentes em qualquer projeto Lovable Cloud):
 - `LOVABLE_API_KEY` — IA (Gemini) via gateway, sem custo extra
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` — backend
 
+Variáveis de ambiente das edge functions introduzidas na Fase 1 de segurança:
+
+| Variável | Obrigatória | Efeito se não definida |
+|---|---|---|
+| `ALLOWED_ORIGINS` | recomendada | CORS continua liberado para qualquer origem (`*`), com aviso no log. Defina com a origem do app, separando por vírgula. |
+| `CRON_SECRET` | recomendada | `cron-check-meetings` e `send-reminder` seguem aceitando a service key. Com ela definida, passam a aceitar também o header `x-cron-secret`. |
+| `APP_URL` | recomendada | Links de convite nos e-mails caem no domínio padrão. |
+
+### Link de convite
+
+Entrar em uma reunião exige o token que vai na URL: `/join/:id?t=<token>`.
+O token é gerado automaticamente para toda reunião, expira 7 dias após o fim e
+é conferido no servidor. Um link sem `?t=` — ou com token vencido — é recusado,
+e o id sozinho não dá acesso a nada.
+
 ---
 
 ## Checklist pós-remix
@@ -59,8 +74,10 @@ Secrets de plataforma (já presentes em qualquer projeto Lovable Cloud):
 Itens essenciais para o app funcionar 100% (ver KB do projeto para detalhes):
 
 - [ ] Trigger `on_auth_user_created` em `auth.users` instalado (ver auto-reparo acima)
-- [ ] RLS `anon INSERT/SELECT` em `meeting_transcripts` (convidados sem auth)
-- [ ] RLS `anon SELECT` em `meetings` (rota `/join/:id`)
+- [ ] Migrations aplicadas (`supabase/migrations/`) — inclui a correção de
+      privilégio das funções `SECURITY DEFINER`, sem a qual as chaves do Vault
+      ficam legíveis por requisição anônima
+- [ ] `ALLOWED_ORIGINS` configurada nas edge functions
 - [ ] Realtime habilitado em `meetings` e `meeting_transcripts`
 - [ ] 17 edge functions deployadas (incluindo `ensure-auth-trigger`)
 - [ ] Auth email/senha habilitado

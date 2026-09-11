@@ -37,9 +37,12 @@ import {
   Check,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { buildJoinLink } from '@/lib/join-link';
 
 interface MeetingControlsProps {
   meetingId: string;
+  /** Token do convite. Ausente para convidado — que não distribui convite. */
+  joinToken?: string | null;
   isHost: boolean;
   onLeave: () => void;
   showTranscript?: boolean;
@@ -54,6 +57,7 @@ interface MeetingControlsProps {
 
 export function MeetingControls({
   meetingId,
+  joinToken,
   isHost,
   onLeave,
   showTranscript,
@@ -242,7 +246,8 @@ export function MeetingControls({
               size="icon"
               className="h-10 w-10 rounded-full"
               onClick={() => {
-                const joinUrl = `${window.location.origin}/join/${meetingId}`;
+                const joinUrl = buildJoinLink(meetingId, joinToken);
+                if (!joinUrl) return;
                 navigator.clipboard.writeText(joinUrl);
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
