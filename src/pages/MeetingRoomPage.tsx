@@ -249,6 +249,7 @@ export default function MeetingRoomPage() {
 
       <MeetingControls
         meetingId={id!}
+        joinToken={meeting?.join_token}
         isHost={isHost}
         onLeave={handleLeave}
         showTranscript={showTranscript}

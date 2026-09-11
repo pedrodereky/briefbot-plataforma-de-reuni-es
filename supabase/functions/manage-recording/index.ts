@@ -1,16 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { EgressClient } from "npm:livekit-server-sdk@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireMeetingOwner } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
 
   try {
     const { meeting_id, action } = await req.json();
@@ -18,13 +15,21 @@ serve(async (req) => {
     if (!meeting_id || !action) {
       return new Response(JSON.stringify({ error: "meeting_id and action (start|stop) required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Autorização (auditoria P0 item 2): esta função opera com a service key,
+    // que ignora RLS. Sem esta checagem, qualquer um que soubesse o UUID de
+    // uma reunião agia sobre ela. Aceita a cadeia interna (service key) e o
+    // dono da reunião; qualquer outro recebe 403.
+    const autorizacao = await requireMeetingOwner(req, supabase, meeting_id);
+    if (!autorizacao.ok) return autorizacao.response;
+
 
     const { data: meeting, error: meetingErr } = await supabase
       .from("meetings")
@@ -35,7 +40,7 @@ serve(async (req) => {
     if (meetingErr || !meeting) {
       return new Response(JSON.stringify({ error: "Meeting not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -51,7 +56,7 @@ serve(async (req) => {
     if (!apiKey || !apiSecret || !livekitUrl) {
       return new Response(JSON.stringify({ error: "LiveKit not configured" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -61,7 +66,7 @@ serve(async (req) => {
     if (!roomName) {
       return new Response(JSON.stringify({ error: "No LiveKit room for this meeting" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -89,7 +94,7 @@ serve(async (req) => {
             error: "Recording not available. LiveKit Egress requires a paid plan.",
             hint: "Upgrade your LiveKit plan at cloud.livekit.io to enable recording.",
           }),
-          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
         );
       }
 
@@ -100,14 +105,14 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, egress_id: egress.egressId, status: "recording" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
 
     } else if (action === "stop") {
       const egressId = meeting.recording_egress_id;
       if (!egressId) {
         return new Response(JSON.stringify({ success: true, status: "no_active_recording" }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -153,19 +158,19 @@ serve(async (req) => {
 
       return new Response(
         JSON.stringify({ success: true, recording_url: recordingUrl, status: "stopped" }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
     return new Response(JSON.stringify({ error: "Invalid action" }), {
       status: 400,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   } catch (err) {
     console.error("Recording error:", err);
     return new Response(JSON.stringify({ error: err instanceof Error ? err.message : "Internal server error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

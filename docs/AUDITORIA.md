@@ -14,16 +14,48 @@ calendário).
 |---|---|
 | Typecheck | ✅ limpo |
 | Build | ✅ 12s (1.87 MB, sem code splitting) |
-| Lint | ❌ 53 erros, 9 warnings |
-| Testes unitários | ❌ 1 teste trivial (`expect(true).toBe(true)`) |
+| Lint | ⚠️ gate ativo; 49 erros antigos congelados em suppressions |
+| Testes unitários | ⚠️ 91 testes (eram 1), concentrados em segurança; lógica de domínio segue descoberta |
 | Testes e2e | ❌ 0 specs; config Playwright quebrada |
-| CI | ❌ inexistente |
-| Migrations | ❌ diretório não existe |
-| Autorização nas edge functions | ❌ 10 de 17 sem verificação de chamador |
+| CI | ✅ lint, typecheck, testes, build e schema (Fase 0/1) |
+| Migrations | ✅ versionadas e testadas contra PostgreSQL real (Fase 0/1) |
+| Autorização nas edge functions | ✅ 17 de 17 verificam o chamador (Fase 1) |
 
 ---
 
 ## P0 — Crítico (segurança / perda de dados / custo)
+
+### 0. `REVOKE ... FROM anon` é no-op — RPCs do Vault abertas ao anônimo
+
+**Descoberto durante a Fase 1**, ao testar as migrations contra um PostgreSQL
+real. Não estava na auditoria original.
+
+O PostgreSQL concede `EXECUTE` a `PUBLIC` por padrão ao criar uma função, e
+`PUBLIC` abrange `anon` e `authenticated`. Revogar do papel sem revogar de
+`PUBLIC` **não tira nada**. O padrão veio do `.lovable/plan.md` e foi
+reproduzido em todas as funções `SECURITY DEFINER`:
+
+```sql
+REVOKE EXECUTE ON FUNCTION public.get_user_secret FROM anon, authenticated;  -- não faz nada
+```
+
+Como o PostgREST expõe funções de `public` como RPC, a consequência é direta:
+
+```http
+POST /rest/v1/rpc/get_user_secret
+{"_user_id": "<uuid de qualquer usuário>", "_service": "livekit_api_secret"}
+```
+
+devolve o segredo **já decriptado** do Vault, sem autenticação alguma. Vale para
+as chaves de LiveKit, Deepgram e Resend de qualquer conta. Isso é mais grave
+que o item 1 abaixo: não expõe uma chave de um serviço, expõe todas, de todos
+os usuários.
+
+Corrigido na Fase 1 (`REVOKE ... FROM PUBLIC` + `GRANT` só a `service_role`),
+com teste de schema que falha se alguma função `SECURITY DEFINER` voltar a ser
+executável por `anon`. **O banco em produção provavelmente ainda tem esta
+falha** — ela só desaparece quando a migration da Fase 1 for aplicada lá.
+
 
 ### 1. Chave Deepgram entregue crua ao navegador
 `supabase/functions/deepgram-token/index.ts:44` retorna `{ key: deepgramApiKey }` ao
@@ -224,16 +256,44 @@ antes de qualquer cliente real.
   some na Fase 3 com `--prune-suppressions`, sem precisar antecipar o item 18
   para dentro da Fase 0.
 
-### Fase 1 — Segurança · ~3 dias
+### Fase 1 — Segurança ✅ CONCLUÍDA
 
-| # | Ação | Critério de aceite |
+| # | Ação | Entregue |
 |---|---|---|
-| 2 | Helper `requireMeetingOwner(req, meeting_id)` compartilhado em `supabase/functions/_shared/auth.ts`: valida JWT via `getClaims` e compara `meeting.user_id`. Aplicar nas 9 funções de usuário | Teste: usuário A recebe 403 ao chamar cada função com `meeting_id` de B |
-| 2 | `cron-check-meetings` e `send-reminder` autenticados por segredo dedicado (`CRON_SECRET`) em header, não pela service key no body | Chamada sem o segredo → 401 |
-| 1 | Eliminar a entrega da chave Deepgram: trocar por token temporário de projeto (`POST /v1/projects/{id}/keys` com TTL curto e escopo `usage:write`), ou proxiar o áudio por uma função WebSocket | DevTools do cliente nunca expõe a chave de longa duração |
-| 3 | Token de convite: coluna `join_token` (+ `expires_at`) em `meetings`; `/join/:id?t=...` obrigatório; `livekit-token` recusa se o token não bater, se `meeting_status = 'ended'` ou fora da janela | Link antigo/sem token → 403 |
-| 3 | Sanitizar e limitar `guest_name` (trim, 60 chars, sem control chars) | Fuzz de nome não quebra a UI |
-| 6 | CORS restrito à origem do app via env `ALLOWED_ORIGIN` | `curl` de outra origem é bloqueado no preflight |
+| 0 | `REVOKE ... FROM PUBLIC` em todas as `SECURITY DEFINER` | ✅ descoberto e corrigido nesta fase; teste de schema impede regressão |
+| 2 | `requireMeetingOwner` em `_shared/auth.ts`, aplicado às 8 funções que agem sobre reunião | ✅ aceita cadeia interna (service key) ou dono; qualquer outro recebe 403 |
+| 2 | `cron-check-meetings` e `send-reminder` com `requireCron` | ✅ header `x-cron-secret` **ou** service key — anônimo recebe 401 |
+| 1 | Chave Deepgram temporária | ✅ `POST /v1/projects/{id}/keys`, escopo `usage:write`, TTL de 10 min; a chave mestra não sai da edge function |
+| 3 | `join_token` + expiração; `/join/:id?t=...` | ✅ coluna, trigger, backfill, `verify_join_token`, e os 4 pontos que montam link atualizados |
+| 3 | `sanitizeGuestName` | ✅ 60 chars, sem controles, sem zero-width nem override bidi — 15 testes unitários |
+| 6 | CORS por `ALLOWED_ORIGINS` | ✅ centralizado em `_shared/http.ts` |
+
+**Endurecimento extra, não previsto no plano:** o papel `anon` perdeu o
+`SELECT` amplo em `meetings` (agora só as 4 colunas da tela de entrada, via
+privilégio de coluna — `join_token`, `user_id` e `livekit_room_name` ficaram
+inacessíveis) e a leitura anônima de transcrições passou a valer só para
+reuniões ao vivo, não mais para o histórico inteiro.
+
+**Limite reconhecido:** um anônimo com o id de uma reunião **ao vivo** ainda lê
+a transcrição dela. Fechar isso exige sessão autenticada para convidado (JWT
+curto emitido contra o `join_token`), que é maior que esta fase e está
+registrado como pendência em `supabase/migrations/README.md`.
+
+**Desvios do plano:**
+
+- **`requireCron` aceita a service key além do `CRON_SECRET`.** Exigir só o
+  segredo derrubaria o `pg_cron` que hoje está configurado à mão e manda a
+  service key — briefings e lembretes parariam em silêncio. Os dois caminhos
+  convivem até a Fase 2 versionar a agenda.
+
+- **`ALLOWED_ORIGINS` não definida mantém `*`.** Apertar CORS sem conhecer a
+  origem de produção derrubaria o app. A variável precisa ser configurada no
+  deploy para o controle valer; até lá cada requisição registra aviso no log.
+
+- **`src/integrations/supabase/types.ts` foi editado à mão** para incluir
+  `join_token` e `verify_join_token`. O arquivo é gerado e esta sessão não tem
+  credenciais para regerá-lo — rode `supabase gen types typescript --linked` e
+  substitua.
 
 ### Fase 2 — Fechar os fluxos truncados · ~5 dias
 

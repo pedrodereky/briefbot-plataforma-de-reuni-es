@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -14,9 +14,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Loader2, Users, ArrowLeft } from 'lucide-react';
+import { readJoinToken } from '@/lib/join-link';
 
 export default function JoinMeetingPage() {
   const { id } = useParams<{ id: string }>();
+  const { search } = useLocation();
+  // O link de convite carrega o segredo da reunião; sem ele o servidor recusa
+  // a entrada (auditoria P0 item 3).
+  const joinToken = readJoinToken(search);
   const [guestName, setGuestName] = useState('');
   const [showTranscript, setShowTranscript] = useState(true);
 
@@ -48,6 +53,7 @@ export default function JoinMeetingPage() {
     meetingId: id!,
     participantId: connection?.identity || '',
     participantName: connection?.participant_name || guestName,
+    joinToken,
     enabled: !!connection,
   });
 
@@ -55,7 +61,7 @@ export default function JoinMeetingPage() {
     if (!guestName.trim()) return;
 
     try {
-      await fetchToken(guestName.trim());
+      await fetchToken(guestName.trim(), joinToken);
 
       // Start transcription
       try {
@@ -67,7 +73,7 @@ export default function JoinMeetingPage() {
     } catch {
       // Error handled by hook
     }
-  }, [guestName, fetchToken, startTranscription]);
+  }, [guestName, joinToken, fetchToken, startTranscription]);
 
   const handleLeave = () => {
     stopTranscription();

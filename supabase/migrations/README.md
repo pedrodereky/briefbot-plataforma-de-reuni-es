@@ -33,6 +33,16 @@ Se o `db pull` divergir, o schema real vence: ajuste o baseline e registre a
 diferença no commit. Depois disso, toda mudança de schema passa a ser um novo
 arquivo aqui — nunca uma edição no SQL Editor do painel.
 
+## Como rodar os testes
+
+```bash
+./scripts/test-migrations.sh
+```
+
+Sobe um PostgreSQL efêmero, aplica todas as migrations em ordem, reaplica para
+provar idempotência e roda `supabase/tests/schema_test.sql`. O mesmo script roda
+no CI a cada push.
+
 ## Garantias já verificadas
 
 O baseline foi aplicado contra um PostgreSQL 16 real (com stubs para `auth`,
@@ -47,12 +57,27 @@ O baseline foi aplicado contra um PostgreSQL 16 real (com stubs para `auth`,
   verdadeiro; publicação de realtime cobre as 4 tabelas; RLS ligada em todas as
   tabelas de `public`.
 
+## `20260911130000_fase1_join_token_e_rls.sql`
+
+Fecha o acesso anônimo:
+
+- `join_token` + `join_token_expires_at` em `meetings`, com trigger, default e
+  backfill das reuniões existentes;
+- `verify_join_token()` para as edge functions conferirem o convite;
+- `anon` perde o `SELECT` amplo em `meetings` e passa a enxergar só
+  `id, title, starts_at, meeting_status` (privilégio de coluna) — `join_token`,
+  `user_id` e `livekit_room_name` ficam inacessíveis;
+- leitura anônima de transcrição restrita a reuniões ao vivo;
+- **correção crítica**: `REVOKE EXECUTE ... FROM PUBLIC` em todas as funções
+  `SECURITY DEFINER`. O padrão anterior (`FROM anon, authenticated`) era no-op,
+  e deixava `get_user_secret` chamável anonimamente via PostgREST — ou seja,
+  qualquer um lia as chaves decriptadas do Vault de qualquer usuário.
+
 ## Pendências deliberadas
 
-Duas policies reproduzem, **de propósito**, uma fragilidade conhecida:
-`anon SELECT` em `meetings` e em `meeting_transcripts` liberam qualquer
-requisição anônima que conheça um id. Isso é o estado atual exigido pela rota
-`/join/:id` e está marcado com `⚠️` no SQL. A Fase 1 (item 3) troca por acesso
-via `join_token` com expiração.
+Um anônimo com o id de uma reunião **ao vivo** ainda lê a transcrição dela. A
+policy foi estreitada (antes era todo o histórico), mas fechar de vez exige
+sessão autenticada para convidado — um JWT curto emitido contra o `join_token`,
+maior do que coube na Fase 1.
 
 `pg_cron` ainda não está versionado aqui — é a Fase 2 (item 14).

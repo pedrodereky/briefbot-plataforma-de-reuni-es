@@ -15,7 +15,7 @@ export function useLiveKit(meetingId: string) {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchToken = useCallback(async (guestName?: string) => {
+  const fetchToken = useCallback(async (guestName?: string, joinToken?: string | null) => {
     setIsConnecting(true);
     setError(null);
 
@@ -23,6 +23,11 @@ export function useLiveKit(meetingId: string) {
       const body: Record<string, string> = { meeting_id: meetingId };
       if (guestName) {
         body.guest_name = guestName;
+      }
+      // Sem o token do convite o servidor recusa a entrada de convidado
+      // (auditoria P0 item 3). O dono autenticado não precisa dele.
+      if (joinToken) {
+        body.join_token = joinToken;
       }
 
       const { data, error: fnError } = await supabase.functions.invoke('livekit-token', {

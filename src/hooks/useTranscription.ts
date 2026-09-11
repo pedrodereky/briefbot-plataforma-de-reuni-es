@@ -10,6 +10,8 @@ interface UseTranscriptionOptions {
   meetingId: string;
   participantId: string;
   participantName: string;
+  /** Token do convite; obrigatório para convidado sem conta. */
+  joinToken?: string | null;
   enabled?: boolean;
 }
 
@@ -17,6 +19,7 @@ export function useTranscription({
   meetingId,
   participantId,
   participantName,
+  joinToken,
   enabled = false,
 }: UseTranscriptionOptions) {
   const [isTranscribing, setIsTranscribing] = useState(false);
@@ -30,8 +33,11 @@ export function useTranscription({
     setError(null);
 
     try {
-      // Get Deepgram key from edge function
-      const { data: keyData, error: keyErr } = await supabase.functions.invoke('deepgram-token');
+      // Pede uma credencial EFÊMERA do Deepgram (validade de minutos, escopo
+      // só de envio de áudio). A chave permanente do dono nunca chega aqui.
+      const { data: keyData, error: keyErr } = await supabase.functions.invoke('deepgram-token', {
+        body: { meeting_id: meetingId, join_token: joinToken ?? undefined },
+      });
       if (keyErr || !keyData?.key) {
         throw new Error('Failed to get Deepgram API key');
       }
@@ -104,7 +110,7 @@ export function useTranscription({
       setError(err.message || 'Failed to start transcription');
       setIsTranscribing(false);
     }
-  }, [meetingId, participantId, participantName]);
+  }, [meetingId, participantId, participantName, joinToken]);
 
   const stop = useCallback(() => {
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {

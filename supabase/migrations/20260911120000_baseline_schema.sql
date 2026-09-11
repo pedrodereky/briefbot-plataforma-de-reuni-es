@@ -325,10 +325,21 @@ END;
 $$;
 
 -- Nenhuma dessas RPCs pode ser chamada do frontend.
-REVOKE EXECUTE ON FUNCTION public.get_user_secret(uuid, text)            FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.store_user_secret(uuid, text, text)    FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.delete_user_secret(uuid, text)         FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.set_secret_validation(uuid, text, text) FROM anon, authenticated;
+--
+-- IMPORTANTE: revogar de `anon, authenticated` é INSUFICIENTE — o PostgreSQL
+-- concede EXECUTE a PUBLIC por padrão, e PUBLIC inclui esses papéis. Sem
+-- revogar de PUBLIC, qualquer anônimo chama estas funções via PostgREST
+-- (`POST /rest/v1/rpc/get_user_secret`) e lê segredo decriptado do Vault.
+-- Ver a seção de correção em 20260911130000_fase1_join_token_e_rls.sql.
+REVOKE EXECUTE ON FUNCTION public.get_user_secret(uuid, text)             FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.store_user_secret(uuid, text, text)     FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.delete_user_secret(uuid, text)          FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.set_secret_validation(uuid, text, text) FROM PUBLIC, anon, authenticated;
+
+GRANT EXECUTE ON FUNCTION public.get_user_secret(uuid, text)             TO service_role;
+GRANT EXECUTE ON FUNCTION public.store_user_secret(uuid, text, text)     TO service_role;
+GRANT EXECUTE ON FUNCTION public.delete_user_secret(uuid, text)          TO service_role;
+GRANT EXECUTE ON FUNCTION public.set_secret_validation(uuid, text, text) TO service_role;
 
 -- ============================================================================
 -- TRIGGER DE CRIAÇÃO DE USUÁRIO  (+ RPCs de auto-reparo)
@@ -377,7 +388,11 @@ BEGIN
 END;
 $$;
 
-REVOKE EXECUTE ON FUNCTION public.install_auth_trigger() FROM anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.install_auth_trigger() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.check_auth_trigger_exists() FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public.handle_new_user() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.install_auth_trigger() TO service_role;
+GRANT EXECUTE ON FUNCTION public.check_auth_trigger_exists() TO service_role;
 
 -- Instala o trigger já nesta migration (o auto-reparo em runtime vira fallback).
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;

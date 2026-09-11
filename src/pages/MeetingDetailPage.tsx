@@ -35,6 +35,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { buildJoinLink } from '@/lib/join-link';
 
 type Meeting = Tables<'meetings'>;
 type Briefing = Tables<'briefings'>;
@@ -191,8 +192,17 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
               variant="outline"
               size="sm"
               onClick={() => {
-                const link = `${window.location.origin}/join/${meeting.id}`;
+                const link = buildJoinLink(meeting.id, meeting.join_token);
+                if (!link) {
+                  toast({
+                    title: 'Link indisponivel',
+                    description: 'Esta reuniao ainda nao tem token de convite.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
                 navigator.clipboard.writeText(link);
+                toast({ title: 'Link de convite copiado!' });
               }}
               className="gap-1"
             >
