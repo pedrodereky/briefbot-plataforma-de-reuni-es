@@ -29,3 +29,8 @@ dist-ssr
 # Vite carrega por cima e o git ignora.
 .env.local
 .env.*.local
+
+# Testes
+coverage
+playwright-report
+test-results

@@ -1,3 +1,5 @@
+import type { AudioCaptureOptions, VideoCaptureOptions } from 'livekit-client';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useLocalParticipant, useRoomContext, useParticipants } from '@livekit/components-react';
 import { Track, DataPacket_Kind } from 'livekit-client';
@@ -139,13 +141,13 @@ export function MeetingControls({
   const switchAudioDevice = async (deviceId: string) => {
     await localParticipant.setMicrophoneEnabled(true, {
       deviceId: { exact: deviceId },
-    } as any);
+    } satisfies AudioCaptureOptions);
   };
 
   const switchVideoDevice = async (deviceId: string) => {
     await localParticipant.setCameraEnabled(true, {
       deviceId: { exact: deviceId },
-    } as any);
+    } satisfies VideoCaptureOptions);
   };
 
   const handleLeave = () => {
@@ -160,7 +162,11 @@ export function MeetingControls({
 
     // Stop recording if active
     if (isRecording && onToggleRecording) {
-      try { await onToggleRecording(); } catch {}
+      try {
+      await onToggleRecording();
+    } catch {
+      // O erro já é exibido por quem passou onToggleRecording.
+    }
     }
 
     // Call server-side end-meeting: closes room, generates summary + insights
@@ -368,7 +374,7 @@ function ControlButton({
 }: {
   active: boolean;
   onClick: () => void;
-  icon: any;
+  icon: LucideIcon;
   tooltip: string;
   destructive?: boolean;
   highlight?: boolean;

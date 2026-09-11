@@ -62,6 +62,12 @@ Variáveis de ambiente das edge functions introduzidas na Fase 1 de segurança:
 | `RECORDING_S3_BUCKET` / `_REGION` / `_ACCESS_KEY` / `_SECRET` | obrigatória para gravar | Sem elas `manage-recording` recusa iniciar a gravação (503) em vez de gravar para lugar nenhum. |
 | `RECORDING_S3_ENDPOINT` | opcional | Para S3-compatível (Storage do Supabase, MinIO). Ativa path style automaticamente. |
 
+E no frontend (arquivo `.env`):
+
+| Variável | Obrigatória | Efeito se não definida |
+|---|---|---|
+| `VITE_SENTRY_DSN` | opcional | Sem ela o SDK do Sentry **nem é baixado**; os erros continuam indo para o console e para a tela do Error Boundary. |
+
 ### Gravação
 
 O Egress do LiveKit não armazena arquivo: ele entrega a um destino que você
@@ -124,6 +130,21 @@ O estado de completude do projeto está mapeado em
 severidade e plano de execução em 5 fases. **A Fase 0 (fundação) está
 concluída**; as Fases 1 e 2 contêm itens de segurança que devem ser fechados
 antes de expor o produto a usuários externos.
+
+## Desenvolvimento
+
+```bash
+npm run dev            # servidor local
+npm run lint           # zero erros é a regra; o CI falha em qualquer um
+npm test               # testes de unidade
+npm run test:coverage  # idem, com limiar de cobertura
+npm run test:e2e       # Playwright sobre um build real
+./scripts/test-migrations.sh   # migrations num PostgreSQL efêmero
+```
+
+Ao investigar um erro relatado por um usuário, peça o código exibido na tela de
+falha: é o `request_id`, enviado no header de toda chamada às edge functions e
+repetido nos logs delas.
 
 ## Estrutura do projeto
 

@@ -17,7 +17,7 @@
  */
 
 import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { errorResponse } from "./http.ts";
+import { errorResponse, requestId } from "./http.ts";
 import { timingSafeEqual } from "./sanitize.ts";
 
 export { sanitizeGuestName, timingSafeEqual } from "./sanitize.ts";
@@ -144,6 +144,7 @@ export async function requireMeetingOwner(
 
   if (userId !== meeting.user_id) {
     console.warn("acesso negado a reuniao de outro usuario", {
+      request_id: requestId(req),
       meeting_id: meetingId,
       caller: userId,
     });

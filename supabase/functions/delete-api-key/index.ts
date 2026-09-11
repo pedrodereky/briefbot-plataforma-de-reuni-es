@@ -41,7 +41,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {

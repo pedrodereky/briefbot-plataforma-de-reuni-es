@@ -1,3 +1,4 @@
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
@@ -168,7 +169,7 @@ function SidebarItem({
   collapsed,
   active,
 }: {
-  item: { title: string; url: string; icon: any };
+  item: { title: string; url: string; icon: LucideIcon };
   collapsed: boolean;
   active: boolean;
 }) {

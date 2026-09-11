@@ -46,13 +46,30 @@ export function corsHeaders(req: Request): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Headers":
-      "authorization, x-client-info, apikey, content-type, x-cron-secret",
+      "authorization, x-client-info, apikey, content-type, x-cron-secret, x-request-id",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
     "Vary": "Origin",
+    "Access-Control-Expose-Headers": "x-request-id",
   };
 }
 
 /** Responde ao preflight quando for o caso; senão devolve null. */
+/**
+ * Id de correlação enviado pelo cliente (src/lib/telemetry.ts).
+ *
+ * Permite ligar o que o usuário viu no navegador ao que esta função registrou
+ * — antes os `console.error` eram soltos, sem nada em comum (auditoria P2
+ * item 21). Quando o chamador não manda um, um é gerado para o log local.
+ */
+export function requestId(req: Request): string {
+  return req.headers.get("x-request-id") ?? `srv-${crypto.randomUUID()}`;
+}
+
+/** Log de erro já correlacionado. Use no lugar de console.error solto. */
+export function logErro(req: Request, mensagem: string, extra: Record<string, unknown> = {}): void {
+  console.error(mensagem, { request_id: requestId(req), ...extra });
+}
+
 export function handlePreflight(req: Request): Response | null {
   if (req.method !== "OPTIONS") return null;
   return new Response(null, { headers: corsHeaders(req) });

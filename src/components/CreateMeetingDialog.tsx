@@ -1,3 +1,5 @@
+import type { Json } from '@/integrations/supabase/types';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -163,7 +165,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
           description: fullDescription.trim() || null,
           starts_at: startsAt.toISOString(),
           ends_at: endsAt.toISOString(),
-          attendees: attendeesList as any,
+          attendees: attendeesList as unknown as Json,
           organizer: user.email || null,
           calendar_event_id: crypto.randomUUID(),
           meeting_status: 'scheduled',
@@ -179,7 +181,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
 
       // Auto-save all attendees as contacts (with real names if provided)
       if (attendeesList.length > 0) {
-        const existingEmails = new Set(contacts.map((c: any) => c.email));
+        const existingEmails = new Set(contacts.map((c) => c.email));
         const newEmails = attendeesList.filter((e) => !existingEmails.has(e));
         if (newEmails.length > 0) {
           const newContacts = newEmails.map((email) => ({
@@ -193,7 +195,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
         // Increment meeting_count for existing contacts
         const existingInMeeting = attendeesList.filter((e) => existingEmails.has(e));
         for (const email of existingInMeeting) {
-          const contact = contacts?.find((c: any) => c.email === email);
+          const contact = contacts?.find((c) => c.email === email);
           if (contact) {
             await supabase.from('contacts').update({ meeting_count: (contact.meeting_count || 0) + 1, last_meeting_at: new Date().toISOString() }).eq('id', contact.id);
           }
@@ -233,8 +235,8 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
       reset();
       onOpenChange?.(false);
       navigate(`/meetings/${meeting.id}`);
-    } catch (err: any) {
-      toast({ title: 'Erro ao criar reuniao', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao criar reuniao', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -424,9 +426,9 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <Label className="text-xs text-muted-foreground">Seus contatos</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {contacts
-                    .filter((c: any) => !attendeesList.includes(c.email))
+                    .filter((c) => !attendeesList.includes(c.email))
                     .slice(0, 12)
-                    .map((c: any) => (
+                    .map((c) => (
                       <button
                         key={c.id}
                         onClick={() => setAttendeesList((prev) => [...prev, c.email])}
@@ -471,12 +473,12 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <Label className="text-xs text-muted-foreground">{attendeesList.length} participante{attendeesList.length !== 1 && 's'}</Label>
                 <div className="space-y-1.5">
                   {attendeesList.map((email) => {
-                    const contact = contacts.find((c: any) => c.email === email);
+                    const contact = contacts.find((c) => c.email === email);
                     const isNew = !contact;
                     return (
                       <div key={email} className="flex items-center gap-2 rounded-md border px-2.5 py-1.5">
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary shrink-0">
-                          {(contact ? (contact as any).name : newContactNames[email] || email)[0].toUpperCase()}
+                          {(contact ? contact.name : newContactNames[email] || email)[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           {isNew ? (
@@ -491,7 +493,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{(contact as any).name}</span>
+                              <span className="text-sm font-medium">{contact.name}</span>
                               <span className="text-[10px] text-muted-foreground">{email}</span>
                             </div>
                           )}
@@ -503,7 +505,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                     );
                   })}
                 </div>
-                {attendeesList.some((e) => !contacts.find((c: any) => c.email === e)) && (
+                {attendeesList.some((e) => !contacts.find((c) => c.email === e)) && (
                   <p className="text-[10px] text-muted-foreground">
                     Preencha os nomes para salvar como contatos. Na proxima vez, bastara clicar no nome.
                   </p>

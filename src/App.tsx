@@ -21,63 +21,66 @@ import JoinMeetingPage from "./pages/JoinMeetingPage";
 import OnboardingPage from "./pages/OnboardingPage";
 import NotFound from "./pages/NotFound";
 import { AppHooks } from "./components/AppHooks";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AuthProvider>
-          <ScrollToTop />
-          <AppHooks />
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            {/* Onboarding wizard (full-screen, no sidebar) */}
-            <Route
-              path="/onboarding"
-              element={
-                <ProtectedRoute>
-                  <OnboardingPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Full-screen meeting room (no sidebar/topbar) */}
-            <Route
-              path="/meetings/:id/room"
-              element={
-                <ProtectedRoute>
-                  <MeetingRoomPage />
-                </ProtectedRoute>
-              }
-            />
-            {/* Public guest join page */}
-            <Route path="/join/:id" element={<JoinMeetingPage />} />
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/" element={<DashboardPage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/calendar" element={<CalendarPage />} />
-              <Route path="/meetings" element={<MeetingsPage />} />
-              <Route path="/meetings/:id" element={<MeetingDetailPage />} />
-              <Route path="/action-items" element={<ActionItemsPage />} />
-              <Route path="/contacts" element={<ContactsPage />} />
-              <Route path="/recordings" element={<RecordingsPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-            </Route>
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+  <ErrorBoundary>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <AuthProvider>
+            <ScrollToTop />
+            <AppHooks />
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              {/* Onboarding wizard (full-screen, no sidebar) */}
+              <Route
+                path="/onboarding"
+                element={
+                  <ProtectedRoute>
+                    <OnboardingPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Full-screen meeting room (no sidebar/topbar) */}
+              <Route
+                path="/meetings/:id/room"
+                element={
+                  <ProtectedRoute>
+                    <MeetingRoomPage />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Public guest join page */}
+              <Route path="/join/:id" element={<JoinMeetingPage />} />
+              <Route
+                element={
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
+                }
+              >
+                <Route path="/" element={<DashboardPage />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/calendar" element={<CalendarPage />} />
+                <Route path="/meetings" element={<MeetingsPage />} />
+                <Route path="/meetings/:id" element={<MeetingDetailPage />} />
+                <Route path="/action-items" element={<ActionItemsPage />} />
+                <Route path="/contacts" element={<ContactsPage />} />
+                <Route path="/recordings" element={<RecordingsPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+              </Route>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthProvider>
+        </BrowserRouter>
+      </TooltipProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

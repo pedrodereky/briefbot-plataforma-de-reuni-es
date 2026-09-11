@@ -1,3 +1,4 @@
+import { mensagemDeErro } from '@/lib/errors';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
@@ -164,8 +165,8 @@ export default function MeetingRoomPage() {
       toast({
         title: action === 'start' ? 'Gravacao iniciada' : 'Gravacao finalizada',
       });
-    } catch (err: any) {
-      toast({ title: 'Erro na gravacao', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro na gravacao', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setRecordingLoading(false);
     }

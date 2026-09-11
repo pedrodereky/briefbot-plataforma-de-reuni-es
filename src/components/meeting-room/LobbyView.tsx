@@ -1,3 +1,4 @@
+import type { Json } from '@/integrations/supabase/types';
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ interface LobbyViewProps {
     id: string;
     title: string;
     starts_at: string;
-    attendees: any;
+    attendees: Json;
     organizer: string | null;
     description: string | null;
   };

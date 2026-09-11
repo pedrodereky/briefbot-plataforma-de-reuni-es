@@ -1,3 +1,5 @@
+import type { TablesUpdate } from '@/integrations/supabase/types';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -84,8 +86,8 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['meeting', meeting.id] });
       toast({ title: 'Reunião cancelada' });
-    } catch (err: any) {
-      toast({ title: 'Erro ao cancelar', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao cancelar', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setCancelling(false);
     }
@@ -100,7 +102,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       newStart.setHours(hours, minutes, 0, 0);
 
       // Keep same duration
-      const updates: any = { starts_at: newStart.toISOString() };
+      const updates: TablesUpdate<'meetings'> = { starts_at: newStart.toISOString() };
       if (end && duration) {
         const newEnd = new Date(newStart.getTime() + duration * 60_000);
         updates.ends_at = newEnd.toISOString();
@@ -114,8 +116,8 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       queryClient.invalidateQueries({ queryKey: ['meeting', meeting.id] });
       setRescheduleOpen(false);
       toast({ title: 'Reunião reagendada' });
-    } catch (err: any) {
-      toast({ title: 'Erro ao reagendar', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao reagendar', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setRescheduling(false);
     }
@@ -340,9 +342,9 @@ function BriefingTab({ meeting, briefing }: { meeting: Meeting; briefing: Briefi
       if (data.briefing_id) {
         await sendNotifications(data.briefing_id);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Generate briefing error:', err);
-      toast({ title: 'Erro ao gerar briefing', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro ao gerar briefing', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGenerating(false);
     }
@@ -430,7 +432,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
   const doGenerate = async () => {
     setGenerating(true);
     try {
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         meeting_id: meeting.id,
         use_live_transcript: true,
       };
@@ -445,24 +447,30 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       queryClient.invalidateQueries({ queryKey: ['action_items', meeting.id] });
 
       await sendNotifications(meeting.id);
-    } catch (err: any) {
-      toast({ title: 'Erro ao gerar ata', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar ata', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGenerating(false);
     }
   };
 
-  // Auto-generate when transcript is available and ata hasn't been generated yet
+  // `doGenerate` é recriado a cada render e fecha sobre estado que muda, mas o
+  // efeito abaixo só deve reagir às CONDIÇÕES de disparo — colocá-lo no array
+  // de dependências re-executaria o efeito a cada render. A referência sempre
+  // aponta para a versão mais recente, então não há closure obsoleta.
+  const doGenerateRef = useRef(doGenerate);
   useEffect(() => {
-    if (
-      hasLiveTranscript &&
-      !meeting.summary_sent &&
-      !summary &&
-      !generating &&
-      !autoTriggered.current
-    ) {
+    doGenerateRef.current = doGenerate;
+  });
+
+  // Gera a ata sozinho quando a transcrição fica disponível e ainda não há
+  // resumo. `autoTriggered` garante uma única execução por montagem — era o
+  // que já impedia a geração duplicada que o estado `generating` obsoleto
+  // poderia causar.
+  useEffect(() => {
+    if (hasLiveTranscript && !meeting.summary_sent && !summary && !autoTriggered.current) {
       autoTriggered.current = true;
-      doGenerate();
+      doGenerateRef.current();
     }
   }, [hasLiveTranscript, meeting.summary_sent, summary]);
 
