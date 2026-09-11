@@ -1,7 +1,8 @@
 // NOTA: arquivo normalmente gerado por `supabase gen types`. As colunas
-// join_token/join_token_expires_at e a RPC verify_join_token foram acrescentadas
-// à mão junto da migration 20260911130000, porque esta sessão não tem
-// credenciais para regerar. Rode `supabase gen types typescript --linked` e
+// join_token/join_token_expires_at, as colunas recording_* e a RPC
+// verify_join_token foram acrescentadas à mão junto das migrations
+// 20260911130000 e 20260911140000, porque esta sessão não tem credenciais
+// para regerar. Rode `supabase gen types typescript --linked` e
 // substitua este arquivo assim que possível.
 
 export type Json =
@@ -229,6 +230,11 @@ export type Database = {
           livekit_room_name: string | null
           meeting_status: string | null
           organizer: string | null
+          recording_egress_id: string | null
+          recording_ended_at: string | null
+          recording_started_at: string | null
+          recording_status: string | null
+          recording_url: string | null
           starts_at: string
           summary_sent: boolean | null
           title: string
@@ -247,6 +253,11 @@ export type Database = {
           livekit_room_name?: string | null
           meeting_status?: string | null
           organizer?: string | null
+          recording_egress_id?: string | null
+          recording_ended_at?: string | null
+          recording_started_at?: string | null
+          recording_status?: string | null
+          recording_url?: string | null
           starts_at: string
           summary_sent?: boolean | null
           title: string
@@ -265,6 +276,11 @@ export type Database = {
           livekit_room_name?: string | null
           meeting_status?: string | null
           organizer?: string | null
+          recording_egress_id?: string | null
+          recording_ended_at?: string | null
+          recording_started_at?: string | null
+          recording_status?: string | null
+          recording_url?: string | null
           starts_at?: string
           summary_sent?: boolean | null
           title?: string

@@ -71,13 +71,41 @@ DECLARE v uuid; BEGIN
   INSERT INTO vault.secrets(name, description, secret)
        VALUES (p_name, p_description, p_secret) RETURNING id INTO v;
   RETURN v; END $f$;
+
+-- pg_cron e pg_net são extensões do Supabase. Aqui viram stubs que registram
+-- a chamada, para que o agendamento da migration seja exercitado de verdade.
+CREATE SCHEMA IF NOT EXISTS cron;
+CREATE SCHEMA IF NOT EXISTS net;
+CREATE TABLE IF NOT EXISTS cron.job (
+  jobid bigserial PRIMARY KEY, jobname text UNIQUE, schedule text, command text);
+CREATE TABLE IF NOT EXISTS net.chamadas (
+  id bigserial PRIMARY KEY, url text, headers jsonb, body jsonb, criado timestamptz DEFAULT now());
+CREATE OR REPLACE FUNCTION cron.schedule(p_nome text, p_agenda text, p_comando text)
+RETURNS bigint LANGUAGE plpgsql AS $f$
+DECLARE v bigint; BEGIN
+  INSERT INTO cron.job(jobname, schedule, command) VALUES (p_nome, p_agenda, p_comando)
+    ON CONFLICT (jobname) DO UPDATE SET schedule = EXCLUDED.schedule, command = EXCLUDED.command
+    RETURNING jobid INTO v;
+  RETURN v; END $f$;
+CREATE OR REPLACE FUNCTION cron.unschedule(p_nome text)
+RETURNS boolean LANGUAGE plpgsql AS $f$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM cron.job WHERE jobname = p_nome) THEN
+    RAISE EXCEPTION 'could not find valid entry for job %', p_nome;
+  END IF;
+  DELETE FROM cron.job WHERE jobname = p_nome; RETURN true; END $f$;
+CREATE OR REPLACE FUNCTION net.http_post(url text, headers jsonb DEFAULT '{}'::jsonb, body jsonb DEFAULT '{}'::jsonb)
+RETURNS bigint LANGUAGE plpgsql AS $f$
+DECLARE v bigint; BEGIN
+  INSERT INTO net.chamadas(url, headers, body) VALUES (url, headers, body) RETURNING id INTO v;
+  RETURN v; END $f$;
 STUBS
 
 echo "▸ aplicando migrations"
 FIRST=1
 for migration in "$REPO_ROOT"/supabase/migrations/*.sql; do
   # supabase_vault não existe fora da plataforma; pgcrypto já veio nos stubs.
-  sed '/CREATE EXTENSION IF NOT EXISTS supabase_vault/d; /CREATE EXTENSION IF NOT EXISTS pgcrypto/d' \
+  sed -E '/CREATE EXTENSION IF NOT EXISTS (supabase_vault|pgcrypto|pg_cron|pg_net)/d' \
     "$migration" > "$PGDATA_DIR/current.sql"
 
   # Reproduz o estado pré-Fase-1: o Supabase concede grants amplos a anon e
@@ -94,7 +122,7 @@ done
 
 echo "▸ reaplicando todas as migrations (idempotência)"
 for migration in "$REPO_ROOT"/supabase/migrations/*.sql; do
-  sed '/CREATE EXTENSION IF NOT EXISTS supabase_vault/d; /CREATE EXTENSION IF NOT EXISTS pgcrypto/d' \
+  sed -E '/CREATE EXTENSION IF NOT EXISTS (supabase_vault|pgcrypto|pg_cron|pg_net)/d' \
     "$migration" > "$PGDATA_DIR/current.sql"
   $PSQL -d briefbot -f "$PGDATA_DIR/current.sql" >/dev/null 2>&1 \
     || { echo "  ✗ $(basename "$migration") não é idempotente"; exit 1; }

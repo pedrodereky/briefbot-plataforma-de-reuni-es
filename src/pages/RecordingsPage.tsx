@@ -17,11 +17,15 @@ export default function RecordingsPage() {
   const { data: recordings = [], isLoading } = useQuery({
     queryKey: ['recordings', user?.id],
     queryFn: async () => {
+      // Antes esta consulta trazia toda reunião encerrada e as exibia como se
+      // fossem gravações (auditoria P1 item 11). Agora só aparece o que tem
+      // arquivo de fato — mais o que ainda está sendo processado, para o
+      // usuário saber que vem aí.
       const { data } = await supabase
         .from('meetings')
-        .select('id, title, starts_at, ends_at, attendees, meeting_status')
+        .select('id, title, starts_at, ends_at, attendees, meeting_status, recording_url, recording_status')
         .eq('user_id', user!.id)
-        .eq('meeting_status', 'ended')
+        .or('recording_url.not.is.null,recording_status.in.(recording,processing)')
         .order('starts_at', { ascending: false });
       return data ?? [];
     },
@@ -31,7 +35,7 @@ export default function RecordingsPage() {
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Gravacoes</h1>
+        <h1 className="text-2xl font-bold">Gravações</h1>
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-lg" />
         ))}
@@ -41,9 +45,9 @@ export default function RecordingsPage() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Gravacoes</h1>
+      <h1 className="text-2xl font-bold">Gravações</h1>
       <p className="text-sm text-muted-foreground">
-        Todas as reunioes gravadas ficam disponiveis aqui para assistir novamente.
+        Todas as reuniões gravadas ficam disponíveis aqui para assistir novamente.
       </p>
 
       {recordings.length === 0 ? (
@@ -51,7 +55,7 @@ export default function RecordingsPage() {
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <Video className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              Nenhuma gravacao ainda. Inicie a gravacao durante uma reuniao ao vivo.
+              Nenhuma gravação ainda. Inicie a gravação durante uma reunião ao vivo.
             </p>
           </CardContent>
         </Card>
@@ -70,7 +74,12 @@ export default function RecordingsPage() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
                   <Play className="h-10 w-10 text-white/80" />
                   <Badge variant="secondary" className="absolute top-2 right-2 text-[10px]">
-                    <Video className="h-3 w-3 mr-1" /> REC
+                    <Video className="h-3 w-3 mr-1" />
+                    {r.recording_url
+                      ? 'REC'
+                      : r.recording_status === 'recording'
+                        ? 'GRAVANDO'
+                        : 'PROCESSANDO'}
                   </Badge>
                 </div>
                 <CardContent className="p-4">

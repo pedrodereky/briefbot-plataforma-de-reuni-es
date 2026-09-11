@@ -14,8 +14,8 @@ calendário).
 |---|---|
 | Typecheck | ✅ limpo |
 | Build | ✅ 12s (1.87 MB, sem code splitting) |
-| Lint | ⚠️ gate ativo; 49 erros antigos congelados em suppressions |
-| Testes unitários | ⚠️ 91 testes (eram 1), concentrados em segurança; lógica de domínio segue descoberta |
+| Lint | ⚠️ gate ativo; 45 erros antigos congelados em suppressions (eram 53) |
+| Testes unitários | ⚠️ 99 testes (eram 1) + 37 checagens de schema; lógica de domínio segue descoberta |
 | Testes e2e | ❌ 0 specs; config Playwright quebrada |
 | CI | ✅ lint, typecheck, testes, build e schema (Fase 0/1) |
 | Migrations | ✅ versionadas e testadas contra PostgreSQL real (Fase 0/1) |
@@ -295,17 +295,36 @@ registrado como pendência em `supabase/migrations/README.md`.
   credenciais para regerá-lo — rode `supabase gen types typescript --linked` e
   substitua.
 
-### Fase 2 — Fechar os fluxos truncados · ~5 dias
+### Fase 2 — Fechar os fluxos truncados ✅ CONCLUÍDA
 
-| # | Ação | Critério de aceite |
+| # | Ação | Entregue |
 |---|---|---|
-| 5 | `livekit-webhook` resolve a chave do Vault: identificar a reunião pelo `room name` **antes** de validar, e então verificar a assinatura com as credenciais daquele `user_id` | Evento real do LiveKit Cloud muda `meeting_status` para `live` |
-| 9 | Migration adicionando `recording_url text` e `recording_egress_id text` a `meetings`; regenerar types; remover o `as any` de `RecordingTab`; checar erro do `.update()` | `tsc` passa sem cast e o update falha alto, não em silêncio |
-| 10 | Definir destino de egress (bucket S3 ou Supabase Storage via `s3Upload`) e capturar a URL final no evento `egress_ended` do webhook, não no `stopEgress` | Reunião gravada → vídeo reproduz na aba Gravação |
-| 11 | `RecordingsPage` filtra por `recording_url IS NOT NULL` | Reunião encerrada sem gravação não aparece |
-| 12 | Transcrição robusta: negociar `mimeType` suportado com fallback (`audio/mp4` no Safari), KeepAlive a cada 8s, reconexão com backoff, tratar erro do insert. Médio prazo: avaliar egress de áudio + transcrição batch server-side para cobrir quem não tem a aba aberta | Reunião de 30 min no Safari produz transcrição contínua |
-| 14 | Migration com `cron.schedule` do `pg_cron` para `cron-check-meetings` | Cron existe após `db reset`, sem passo manual |
-| 15 | Deletar `src/pages/Index.tsx` | — |
+| 5 | `livekit-webhook` com chave do Vault | ✅ lê o nome da sala do corpo **não confiável** só para achar o dono, depois verifica a assinatura com as chaves dele; nada acontece antes da verificação passar |
+| 9 | Colunas de gravação | ✅ 5 colunas criadas, types atualizados, `as any` removido de `RecordingTab`, erro do `.update()` checado (com rollback do egress se falhar) |
+| 10 | Destino de egress + URL no `egress_ended` | ✅ destino S3 obrigatório via `RECORDING_S3_*`; sem ele a função recusa com 503 em vez de gravar para o vazio; URL persistida pelo webhook |
+| 11 | `RecordingsPage` só com gravação real | ✅ filtra por `recording_url` não nulo ou gravação em curso; o badge mostra o estado verdadeiro |
+| 12 | Transcrição robusta | ✅ negociação de mimeType (Safari/iOS deixam de quebrar), KeepAlive de 8s, reconexão com espera crescente, `CloseStream` no encerramento e erro do insert tratado |
+| 14 | `pg_cron` versionado | ✅ job a cada 5 min + `app_config` para URL e segredo fora do repositório |
+| 15 | Remover `Index.tsx` | ✅ |
+
+**Decisão de projeto — gravação exige configuração explícita.** O plano dizia
+"definir destino de egress". Ao implementar ficou claro que não há default
+sensato: o LiveKit não armazena nada por conta própria, e qualquer destino
+implica credenciais que só o operador tem. Em vez de escolher um e falhar em
+runtime, a função agora **recusa iniciar** a gravação quando o destino não está
+configurado, dizendo exatamente quais variáveis faltam. Trocar falha silenciosa
+por recusa explícita é o ganho real aqui.
+
+**Ainda não verificado em ambiente real:** o caminho do egress S3 e o formato
+do evento `egress_ended` foram escritos a partir da API do SDK do LiveKit, sem
+poder executar contra uma conta de verdade nesta sessão. A primeira gravação em
+homologação é o teste que falta.
+
+**Limite que permanece (item 12, parte 2):** a transcrição continua capturando
+só o microfone local. Quem não abre a aba com transcrição ativa não entra na
+ata, e o resumo é gerado sobre um registro estruturalmente incompleto. Cobrir
+isso exige egress de áudio + transcrição batch no servidor — trabalho maior que
+esta fase, e que recomendo tratar como item próprio.
 
 ### Fase 3 — Confiabilidade · ~4 dias
 
