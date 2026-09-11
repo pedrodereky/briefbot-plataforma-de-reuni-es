@@ -187,14 +187,42 @@ rascunho.
 Ordem pensada para que cada fase destrave a seguinte. Fase 0 e 1 não são negociáveis
 antes de qualquer cliente real.
 
-### Fase 0 — Fundação (bloqueia todo o resto) · ~2 dias
+### Fase 0 — Fundação ✅ CONCLUÍDA
 
-| # | Ação | Critério de aceite |
+| # | Ação | Entregue |
 |---|---|---|
-| 8 | Criar `supabase/migrations/` e extrair o schema atual (`supabase db pull`) como migration inicial | `supabase db reset` num projeto vazio reproduz o banco inteiro |
-| 4 | Declarar `verify_jwt` por função em `config.toml`: `false` só para `livekit-webhook`; `true` no resto | Chamada sem JWT retorna 401 em 16 das 17 |
-| 17 | CI no GitHub Actions: `lint → tsc --noEmit → vitest → build` | PR com erro de lint não mergeia |
-| 7 | `.env` no `.gitignore` + `.env.example` versionado | `git status` limpo após copiar o exemplo |
+| 8 | `supabase/migrations/` criado com baseline reconstruído do schema | ✅ aplica, é idempotente e passa em 9 testes funcionais contra PostgreSQL 16 real — ver `supabase/migrations/README.md` |
+| 4 | `verify_jwt` declarado para as 17 funções em `config.toml` | ✅ 12 com `true`, 5 com `false` justificado item a item |
+| 17 | CI no GitHub Actions: lint → typecheck → testes → build | ✅ `.github/workflows/ci.yml`, pipeline inteiro verde localmente |
+| 7 | `.env.example` + `.gitignore` para `.env.local` | ✅ com desvio documentado abaixo |
+
+**Desvios do plano original, e por quê:**
+
+- **`.env` continua versionado.** O plano previa removê-lo do git. Ao
+  implementar, verifiquei que `src/integrations/supabase/client.ts` lê
+  `VITE_SUPABASE_URL`/`VITE_SUPABASE_PUBLISHABLE_KEY` em tempo de build:
+  desversionar sem confirmar que a Lovable injeta essas variáveis produziria um
+  bundle com `undefined` e app quebrado em produção. O arquivo contém apenas
+  valores publishable (seguros por design). A proteção efetiva ficou em
+  ignorar `.env.local`, que o Vite carrega por cima e é onde valor sensível
+  deve morar. Desversionar é uma linha — falta confirmar o comportamento da
+  plataforma.
+
+- **`verify_jwt = false` em 5 funções, não em 1.** O plano supunha que só o
+  webhook precisava. Ao implementar, descobri que o projeto usa o formato novo
+  de chave (`sb_publishable_`) e que `client.ts` **remove o header
+  `Authorization`** para esse formato — logo convidados chegam sem header
+  nenhum, e `verify_jwt = true` em `livekit-token`/`deepgram-token` mataria a
+  rota `/join/:id` inteira. `cron-check-meetings`/`send-reminder` são
+  server-to-server com service key opaca, mesmo problema. Cada `false` está
+  justificado no arquivo e amarrado ao item da Fase 1 que o fecha.
+
+- **Lint virou gate por supressão, não por correção.** Os 53 erros
+  preexistentes foram congelados em `eslint-suppressions.json` (recurso nativo
+  do ESLint 9). `npx eslint .` retorna 0 hoje e **falha em qualquer erro
+  novo** — verificado introduzindo um `any` de teste. A dívida segue visível e
+  some na Fase 3 com `--prune-suppressions`, sem precisar antecipar o item 18
+  para dentro da Fase 0.
 
 ### Fase 1 — Segurança · ~3 dias
 

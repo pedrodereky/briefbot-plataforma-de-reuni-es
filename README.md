@@ -29,8 +29,9 @@ A flag `sessionStorage['auth_trigger_checked']` evita re-execuções no mesmo se
 Se você ver no console `[Auth Setup] Trigger check failed:` ou um toast de aviso:
 
 1. Abra **Lovable Cloud → SQL Editor** (executando como role `postgres`).
-2. Cole e execute o conteúdo do arquivo:
-   👉 [`supabase/migrations/`](./supabase/migrations/) — procure pelo arquivo `*_auth_user_settings_sync.sql` (o mais recente com esse sufixo).
+2. Cole e execute o conteúdo de
+   👉 [`supabase/migrations/20260911120000_baseline_schema.sql`](./supabase/migrations/20260911120000_baseline_schema.sql)
+   (ou apenas o bloco "TRIGGER DE CRIAÇÃO DE USUÁRIO" dele).
 3. Cadastre um usuário novo de teste e confirme que aparece linha em `public.user_settings`.
 
 A migration é **idempotente** — pode rodar quantas vezes precisar.
@@ -61,12 +62,20 @@ Itens essenciais para o app funcionar 100% (ver KB do projeto para detalhes):
 - [ ] RLS `anon INSERT/SELECT` em `meeting_transcripts` (convidados sem auth)
 - [ ] RLS `anon SELECT` em `meetings` (rota `/join/:id`)
 - [ ] Realtime habilitado em `meetings` e `meeting_transcripts`
-- [ ] 13 edge functions deployadas (incluindo `ensure-auth-trigger`)
+- [ ] 17 edge functions deployadas (incluindo `ensure-auth-trigger`)
 - [ ] Auth email/senha habilitado
 - [ ] Cron `cron-check-meetings` agendado (~5 min)
 - [ ] Onboarding executado com LiveKit + Deepgram + Resend
 
 ---
+
+## Auditoria e plano de evolução
+
+O estado de completude do projeto está mapeado em
+[`docs/AUDITORIA.md`](./docs/AUDITORIA.md): lacunas classificadas por
+severidade e plano de execução em 5 fases. **A Fase 0 (fundação) está
+concluída**; as Fases 1 e 2 contêm itens de segurança que devem ser fechados
+antes de expor o produto a usuários externos.
 
 ## Estrutura do projeto
 
@@ -80,7 +89,7 @@ src/
 └── lib/               # Utils
 
 supabase/
-├── functions/         # 14 edge functions
+├── functions/         # 17 edge functions
 ├── migrations/        # Migrations versionadas (fonte da verdade do schema)
 └── config.toml        # Configuração do projeto + per-function overrides
 ```

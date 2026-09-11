@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Lint · Typecheck · Test · Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Instalar dependências
+        run: npm ci
+
+      # Falha em QUALQUER erro novo. Os 53 erros preexistentes estão
+      # registrados em eslint-suppressions.json e serão zerados na Fase 3
+      # (item 18) com `npx eslint . --prune-suppressions`.
+      - name: Lint
+        run: npx eslint .
+
+      - name: Typecheck (app)
+        run: npx tsc -p tsconfig.app.json --noEmit
+
+      - name: Typecheck (node)
+        run: npx tsc -p tsconfig.node.json --noEmit
+
+      - name: Testes
+        run: npm test
+
+      # Valores fictícios: o build só precisa que as variáveis existam.
+      # Assim o job não depende do .env versionado.
+      - name: Build
+        env:
+          VITE_SUPABASE_URL: https://exemplo.supabase.co
+          VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci
+          VITE_SUPABASE_PROJECT_ID: ci
+        run: npm run build
