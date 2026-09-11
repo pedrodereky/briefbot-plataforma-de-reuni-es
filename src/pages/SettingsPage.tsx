@@ -28,17 +28,17 @@ import { cn } from '@/lib/utils';
 
 type UserSettings = Tables<'user_settings'>;
 
-const DEFAULT_PRE_PROMPT = `Voce e um assistente de reunioes. Gere um briefing pre-reuniao com base nos dados fornecidos.
+const DEFAULT_PRE_PROMPT = `Você e um assistente de reuniões. Gere um briefing pré-reunião com base nos dados fornecidos.
 
 Inclua:
-- Objetivo provavel da reuniao
+- Objetivo provavel da reunião
 - Contexto dos participantes
-- Pontos que o usuario deve preparar
+- Pontos que o usuário deve preparar
 - Perguntas sugeridas
 
 Formato: Markdown limpo, direto e pratico.`;
 
-const DEFAULT_POST_PROMPT = `Analise a transcricao desta reuniao e gere:
+const DEFAULT_POST_PROMPT = `Análise a transcrição desta reunião e gere:
 
 ## Resumo Executivo
 Resumo em 3-4 frases.
@@ -49,7 +49,7 @@ Lista das decisoes.
 ## Action Items
 Use o formato: [RESPONSAVEL] → [ACAO] → [PRAZO]
 
-## Pontos Nao Resolvidos
+## Pontos Não Resolvidos
 Itens que ficaram em aberto.
 
 Ignore conversas paralelas. Foque no que tem impacto pratico.
@@ -85,11 +85,11 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold text-foreground">Configuracoes</h1>
+      <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
       <Tabs defaultValue="api-keys" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="api-keys" className="gap-1.5"><Key className="h-4 w-4" /> API Keys</TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-1.5"><LinkIcon className="h-4 w-4" /> Integracoes</TabsTrigger>
+          <TabsTrigger value="integrations" className="gap-1.5"><LinkIcon className="h-4 w-4" /> Integrações</TabsTrigger>
           <TabsTrigger value="prompts" className="gap-1.5"><Sparkles className="h-4 w-4" /> Prompts</TabsTrigger>
           <TabsTrigger value="account" className="gap-1.5"><User className="h-4 w-4" /> Conta</TabsTrigger>
         </TabsList>
@@ -133,7 +133,7 @@ const SERVICES: ServiceDef[] = [
   {
     group: 'livekit',
     title: 'LiveKit',
-    description: 'Video e audio das reunioes ao vivo',
+    description: 'Vídeo e áudio das reuniões ao vivo',
     icon: Video,
     iconBg: 'bg-violet-500/10',
     iconColor: 'text-violet-600',
@@ -149,7 +149,7 @@ const SERVICES: ServiceDef[] = [
   {
     group: 'deepgram',
     title: 'Deepgram',
-    description: 'Transcricao em tempo real durante as reunioes',
+    description: 'Transcrição em tempo real durante as reuniões',
     icon: Mic,
     iconBg: 'bg-emerald-500/10',
     iconColor: 'text-emerald-600',
@@ -218,8 +218,8 @@ function ApiKeysSection({ settings: _settings, userId }: { settings: UserSetting
     <div className="space-y-6">
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
-          Gerencie as chaves de integracao dos servicos externos. As chaves ficam armazenadas
-          criptografadas no cofre seguro do banco de dados — nunca sao exibidas apos serem salvas.
+          Gerencie as chaves de integração dos servicos externos. As chaves ficam armazenadas
+          criptografadas no cofre seguro do banco de dados — nunca são exibidas após serem salvas.
         </p>
       </div>
 
@@ -287,13 +287,13 @@ function ServiceCard({
       });
       if (error) throw error;
       if (data?.status === 'valid') {
-        toast({ title: 'Conexao valida!' });
+        toast({ title: 'Conexão válida!' });
       } else {
-        toast({ title: 'Chave invalida ou servico indisponivel.', variant: 'destructive' });
+        toast({ title: 'Chave inválida ou servico indisponivel.', variant: 'destructive' });
       }
       onChange();
     } catch {
-      toast({ title: 'Chave invalida ou servico indisponivel.', variant: 'destructive' });
+      toast({ title: 'Chave inválida ou servico indisponivel.', variant: 'destructive' });
     } finally {
       setBusy(null);
     }
@@ -346,7 +346,7 @@ function ServiceCard({
             {status !== 'not_configured' && (
               <Button variant="outline" size="sm" onClick={test} disabled={busy !== null}>
                 {busy === 'test' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-                <span className="ml-1.5">Testar conexao</span>
+                <span className="ml-1.5">Testar conexão</span>
               </Button>
             )}
             <Button variant={status === 'not_configured' ? 'default' : 'outline'} size="sm" onClick={onReconfigure}>
@@ -398,11 +398,11 @@ function StatusBadge({ status }: { status: 'active' | 'invalid' | 'not_configure
   if (status === 'invalid') {
     return (
       <Badge variant="destructive" className="gap-1">
-        <AlertTriangle className="h-3 w-3" /> Invalida
+        <AlertTriangle className="h-3 w-3" /> Inválida
       </Badge>
     );
   }
-  return <Badge variant="outline" className="gap-1">Nao configurada</Badge>;
+  return <Badge variant="outline" className="gap-1">Não configurada</Badge>;
 }
 
 function ReconfigureDialog({
@@ -527,7 +527,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
 
   const testSlack = async () => {
     if (!slackUrl) {
-      toast({ title: 'URL nao configurada', variant: 'destructive' });
+      toast({ title: 'URL não configurada', variant: 'destructive' });
       return;
     }
     try {
@@ -537,7 +537,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
         body: JSON.stringify({
           blocks: [
             { type: 'header', text: { type: 'plain_text', text: 'Teste BriefBot' } },
-            { type: 'section', text: { type: 'mrkdwn', text: 'Integracao com Slack funcionando!' } },
+            { type: 'section', text: { type: 'mrkdwn', text: 'Integração com Slack funcionando!' } },
           ],
         }),
       });
@@ -586,7 +586,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
             </div>
             <Switch
               checked={settings?.email_enabled ?? false}
-              onCheckedChange={(v) => { saveField({ email_enabled: v }); toast({ title: 'Configuracao salva' }); }}
+              onCheckedChange={(v) => { saveField({ email_enabled: v }); toast({ title: 'Configuração salva' }); }}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -596,7 +596,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
             </div>
             <Switch
               checked={settings?.slack_enabled ?? false}
-              onCheckedChange={(v) => { saveField({ slack_enabled: v }); toast({ title: 'Configuracao salva' }); }}
+              onCheckedChange={(v) => { saveField({ slack_enabled: v }); toast({ title: 'Configuração salva' }); }}
             />
           </div>
         </CardContent>
@@ -606,7 +606,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Lembretes</CardTitle>
-          <CardDescription>Enviar lembrete por email antes da reuniao</CardDescription>
+          <CardDescription>Enviar lembrete por email antes da reunião</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-3">
@@ -614,7 +614,7 @@ function IntegrationsSection({ settings, userId }: { settings: UserSettings | nu
             <select
               className="rounded-md border border-input bg-background px-3 py-2 text-sm"
               value={settings?.reminder_minutes_before ?? 15}
-              onChange={(e) => { saveField({ reminder_minutes_before: parseInt(e.target.value) }); toast({ title: 'Configuracao salva' }); }}
+              onChange={(e) => { saveField({ reminder_minutes_before: parseInt(e.target.value) }); toast({ title: 'Configuração salva' }); }}
             >
               <option value="5">5 min antes</option>
               <option value="10">10 min antes</option>
@@ -656,17 +656,17 @@ function PromptsSection({ settings, userId }: { settings: UserSettings | null; u
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Prompts personalizados</CardTitle>
-        <CardDescription>Esses prompts sao enviados diretamente ao modelo de IA</CardDescription>
+        <CardDescription>Esses prompts são enviados diretamente ao modelo de IA</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
-          <Label>Prompt do briefing pre-reuniao</Label>
+          <Label>Prompt do briefing pré-reunião</Label>
           <Textarea rows={8} value={prePrompt} onChange={(e) => setPrePrompt(e.target.value)} />
           <Button variant="ghost" size="sm" onClick={() => setPrePrompt(DEFAULT_PRE_PROMPT)}>Restaurar padrao</Button>
         </div>
         <Separator />
         <div className="space-y-2">
-          <Label>Prompt da ata pos-reuniao</Label>
+          <Label>Prompt da ata pós-reunião</Label>
           <Textarea rows={8} value={postPrompt} onChange={(e) => setPostPrompt(e.target.value)} />
           <Button variant="ghost" size="sm" onClick={() => setPostPrompt(DEFAULT_POST_PROMPT)}>Restaurar padrao</Button>
         </div>
@@ -689,7 +689,7 @@ function AccountSection({ user }: { user: AuthUser | null }) {
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">{user?.user_metadata?.full_name ?? 'Usuario'}</p>
+          <p className="text-sm font-medium text-foreground">{user?.user_metadata?.full_name ?? 'Usuário'}</p>
           <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
         <Separator />
@@ -707,7 +707,7 @@ function AccountSection({ user }: { user: AuthUser | null }) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Excluir conta?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  Esta acao e irreversivel. Todos os seus dados serao apagados permanentemente.
+                  Esta ação e irreversivel. Todos os seus dados serão apagados permanentemente.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

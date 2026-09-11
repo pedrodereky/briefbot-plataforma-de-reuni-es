@@ -21,7 +21,7 @@ const sections = [
     items: [
       { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
       { title: 'Agenda', url: '/calendar', icon: CalendarDays },
-      { title: 'Reunioes', url: '/meetings', icon: Users },
+      { title: 'Reuniões', url: '/meetings', icon: Users },
     ],
   },
   {
@@ -29,13 +29,13 @@ const sections = [
     items: [
       { title: 'Action Items', url: '/action-items', icon: ListChecks },
       { title: 'Contatos', url: '/contacts', icon: UserCircle },
-      { title: 'Gravacoes', url: '/recordings', icon: Video },
+      { title: 'Gravações', url: '/recordings', icon: Video },
     ],
   },
 ];
 
 const bottomItems = [
-  { title: 'Configuracoes', url: '/settings', icon: Settings },
+  { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -78,7 +78,7 @@ export function AppSidebar() {
       <div className={cn('px-3 py-3 space-y-1 shrink-0', collapsed && 'px-2')}>
         {collapsed ? (
           <>
-            <SidebarTooltip label="Nova Reuniao">
+            <SidebarTooltip label="Nova Reunião">
               <button
                 onClick={() => setCreateOpen(true)}
                 className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mx-auto"
@@ -86,7 +86,7 @@ export function AppSidebar() {
                 <Plus className="h-4 w-4" />
               </button>
             </SidebarTooltip>
-            <SidebarTooltip label="Reuniao Rapida">
+            <SidebarTooltip label="Reunião Rapida">
               <button
                 onClick={() => createInstant()}
                 disabled={creating}
@@ -102,14 +102,14 @@ export function AppSidebar() {
               onClick={() => setCreateOpen(true)}
               className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
             >
-              <Plus className="h-4 w-4" /> Nova Reuniao
+              <Plus className="h-4 w-4" /> Nova Reunião
             </button>
             <button
               onClick={() => createInstant()}
               disabled={creating}
               className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
             >
-              <Zap className="h-4 w-4" /> Reuniao Rapida
+              <Zap className="h-4 w-4" /> Reunião Rapida
             </button>
           </>
         )}

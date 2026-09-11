@@ -53,7 +53,7 @@ export function TranscriptTab({ meetingId }: { meetingId: string }) {
   };
 
   if (isLoading) {
-    return <div className="py-8 text-center text-sm text-muted-foreground">Carregando transcricao...</div>;
+    return <div className="py-8 text-center text-sm text-muted-foreground">Carregando transcrição...</div>;
   }
 
   if (transcripts.length === 0) {
@@ -62,7 +62,7 @@ export function TranscriptTab({ meetingId }: { meetingId: string }) {
         <CardContent className="flex flex-col items-center gap-4 py-12">
           <FileText className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            Nenhuma transcricao disponivel. Transcricoes sao geradas automaticamente durante reunioes ao vivo com o Deepgram ativado.
+            Nenhuma transcrição disponível. Transcrições são geradas automaticamente durante reuniões ao vivo com o Deepgram ativado.
           </p>
         </CardContent>
       </Card>
@@ -74,7 +74,7 @@ export function TranscriptTab({ meetingId }: { meetingId: string }) {
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <Input
-          placeholder="Buscar na transcricao..."
+          placeholder="Buscar na transcrição..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
@@ -102,7 +102,7 @@ export function TranscriptTab({ meetingId }: { meetingId: string }) {
         )}
       </div>
 
-      <p className="text-xs text-muted-foreground">{transcripts.length} segmentos de transcricao</p>
+      <p className="text-xs text-muted-foreground">{transcripts.length} segmentos de transcrição</p>
     </div>
   );
 }

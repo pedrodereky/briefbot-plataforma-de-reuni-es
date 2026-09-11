@@ -99,7 +99,7 @@ export function MeetingControls({
 
   const togglePiP = async () => {
     try {
-      const videoEl = document.querySelector('video[data-lk-source="camera"]') as HTMLVideoElement;
+      const videoEl = document.querySelector('vídeo[data-lk-source="camera"]') as HTMLVideoElement;
       if (videoEl) {
         if (document.pictureInPictureElement) {
           await document.exitPictureInPicture();
@@ -282,7 +282,7 @@ export function MeetingControls({
             active={!!isRecording}
             onClick={onToggleRecording}
             icon={Circle}
-            tooltip={isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
+            tooltip={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
             destructive={!!isRecording}
             loading={recordingLoading}
             fillIcon={!!isRecording}
@@ -297,7 +297,7 @@ export function MeetingControls({
             active={!!showTranscript}
             onClick={onToggleTranscript}
             icon={showTranscript ? MessageSquare : MessageSquareOff}
-            tooltip={showTranscript ? 'Ocultar transcricao' : 'Mostrar transcricao'}
+            tooltip={showTranscript ? 'Ocultar transcrição' : 'Mostrar transcrição'}
             highlight={!!showTranscript}
           />
         )}
@@ -338,7 +338,7 @@ export function MeetingControls({
               <PhoneOff className="w-5 h-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Sair da reuniao</TooltipContent>
+          <TooltipContent>Sair da reunião</TooltipContent>
         </Tooltip>
 
         {isHost && (
@@ -349,7 +349,7 @@ export function MeetingControls({
                 {isEnding ? 'Encerrando...' : 'Encerrar'}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Encerrar reuniao para todos</TooltipContent>
+            <TooltipContent>Encerrar reunião para todos</TooltipContent>
           </Tooltip>
         )}
       </div>
