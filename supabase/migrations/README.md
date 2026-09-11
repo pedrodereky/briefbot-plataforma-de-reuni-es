@@ -73,6 +73,17 @@ Fecha o acesso anônimo:
   e deixava `get_user_secret` chamável anonimamente via PostgREST — ou seja,
   qualquer um lia as chaves decriptadas do Vault de qualquer usuário.
 
+## `20260911140000_fase2_gravacao_e_cron.sql`
+
+- Cria as colunas `recording_*` em `meetings`. O código já escrevia em
+  `recording_egress_id` e `recording_url` **antes de elas existirem**: o
+  `.update()` falhava calado e `RecordingTab` usava `as any` para compilar.
+- Versiona o job `briefbot-check-meetings` no `pg_cron`, que antes só existia
+  se alguém tivesse clicado no painel.
+- Cria `public.app_config`, inacessível a `anon` e `authenticated`, de onde o
+  job lê a URL das functions e o `cron_secret` — assim a migration é idêntica
+  em todo ambiente e nenhum segredo vira histórico versionado.
+
 ## Pendências deliberadas
 
 Um anônimo com o id de uma reunião **ao vivo** ainda lê a transcrição dela. A

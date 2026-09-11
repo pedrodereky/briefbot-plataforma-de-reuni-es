@@ -125,6 +125,57 @@ BEGIN
     AND has_column_privilege('anon', 'public.meetings', 'starts_at', 'SELECT')
     AND has_column_privilege('anon', 'public.meetings', 'meeting_status', 'SELECT'));
 
+  -- ── Gravação (Fase 2) ─────────────────────────────────────────────────────
+  -- O código escrevia nestas colunas antes de elas existirem, e o erro do
+  -- .update() não era checado — a gravação falhava em silêncio.
+  PERFORM pg_temp.check('meetings tem as colunas de gravação',
+    (SELECT count(*) = 5 FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'meetings'
+        AND column_name IN ('recording_egress_id', 'recording_url',
+                            'recording_started_at', 'recording_ended_at',
+                            'recording_status')));
+
+  PERFORM pg_temp.check('anon NÃO enxerga recording_url',
+    NOT has_column_privilege('anon', 'public.meetings', 'recording_url', 'SELECT'));
+
+  UPDATE public.meetings
+     SET recording_url = 'https://exemplo/gravacao.mp4', recording_status = 'ready'
+   WHERE id = v_viva;
+  PERFORM pg_temp.check('gravação persiste na reunião',
+    (SELECT recording_url IS NOT NULL FROM public.meetings WHERE id = v_viva));
+
+  PERFORM pg_temp.check('índice parcial de gravações existe',
+    EXISTS (SELECT 1 FROM pg_indexes
+             WHERE schemaname = 'public' AND indexname = 'meetings_com_gravacao_idx'));
+
+  UPDATE public.meetings SET recording_url = NULL, recording_status = NULL WHERE id = v_viva;
+
+  -- ── Cron versionado (Fase 2) ──────────────────────────────────────────────
+  PERFORM pg_temp.check('job do cron agendado a cada 5 minutos',
+    (SELECT schedule = '*/5 * * * *' FROM cron.job WHERE jobname = 'briefbot-check-meetings'));
+
+  PERFORM pg_temp.check('app_config inacessível a anon e authenticated',
+    NOT has_table_privilege('anon', 'public.app_config', 'SELECT')
+    AND NOT has_table_privilege('authenticated', 'public.app_config', 'SELECT'));
+
+  -- Sem configuração, o disparo não deve estourar nem chamar nada.
+  PERFORM public.disparar_cron_reunioes();
+  PERFORM pg_temp.check('cron sem app_config não dispara chamada',
+    (SELECT count(*) = 0 FROM net.chamadas));
+
+  INSERT INTO public.app_config (chave, valor) VALUES
+    ('functions_base_url', 'https://exemplo.supabase.co/functions/v1'),
+    ('cron_secret',        'segredo-de-teste')
+  ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor;
+
+  PERFORM public.disparar_cron_reunioes();
+  PERFORM pg_temp.check('cron configurado chama cron-check-meetings',
+    (SELECT count(*) = 1 FROM net.chamadas
+      WHERE url = 'https://exemplo.supabase.co/functions/v1/cron-check-meetings'));
+  PERFORM pg_temp.check('cron envia o header x-cron-secret',
+    (SELECT headers ->> 'x-cron-secret' = 'segredo-de-teste'
+       FROM net.chamadas ORDER BY id DESC LIMIT 1));
+
   RAISE NOTICE '--- bloco principal concluído ---';
 END $$;
 

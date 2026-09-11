@@ -59,6 +59,36 @@ Variáveis de ambiente das edge functions introduzidas na Fase 1 de segurança:
 | `ALLOWED_ORIGINS` | recomendada | CORS continua liberado para qualquer origem (`*`), com aviso no log. Defina com a origem do app, separando por vírgula. |
 | `CRON_SECRET` | recomendada | `cron-check-meetings` e `send-reminder` seguem aceitando a service key. Com ela definida, passam a aceitar também o header `x-cron-secret`. |
 | `APP_URL` | recomendada | Links de convite nos e-mails caem no domínio padrão. |
+| `RECORDING_S3_BUCKET` / `_REGION` / `_ACCESS_KEY` / `_SECRET` | obrigatória para gravar | Sem elas `manage-recording` recusa iniciar a gravação (503) em vez de gravar para lugar nenhum. |
+| `RECORDING_S3_ENDPOINT` | opcional | Para S3-compatível (Storage do Supabase, MinIO). Ativa path style automaticamente. |
+
+### Gravação
+
+O Egress do LiveKit não armazena arquivo: ele entrega a um destino que você
+configura. Sem as variáveis `RECORDING_S3_*` a gravação é recusada de forma
+explícita — antes o egress subia sem destino, o arquivo não existia depois e a
+aba de gravação ficava eternamente em "processando".
+
+A URL final é gravada pelo **webhook**, no evento `egress_ended`, e não no
+retorno de `stopEgress()` — naquele instante o arquivo ainda está sendo
+processado. O ciclo de estados é
+`recording` → `processing` → `ready` (ou `failed`).
+
+### Agenda (cron)
+
+`supabase/migrations/20260911140000_fase2_gravacao_e_cron.sql` versiona o job
+`briefbot-check-meetings`, que roda a cada 5 minutos via `pg_cron`. Um passo
+manual é necessário uma vez por ambiente, porque URL e segredo não podem ir
+para o repositório:
+
+```sql
+INSERT INTO public.app_config (chave, valor) VALUES
+  ('functions_base_url', 'https://<project-ref>.supabase.co/functions/v1'),
+  ('cron_secret',        '<mesmo valor da env CRON_SECRET das functions>')
+ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado = now();
+```
+
+Enquanto não for feito, o job roda e sai sem chamar nada, registrando um NOTICE.
 
 ### Link de convite
 
@@ -79,9 +109,10 @@ Itens essenciais para o app funcionar 100% (ver KB do projeto para detalhes):
       ficam legíveis por requisição anônima
 - [ ] `ALLOWED_ORIGINS` configurada nas edge functions
 - [ ] Realtime habilitado em `meetings` e `meeting_transcripts`
+- [ ] `RECORDING_S3_*` configuradas, se for usar gravação
 - [ ] 17 edge functions deployadas (incluindo `ensure-auth-trigger`)
 - [ ] Auth email/senha habilitado
-- [ ] Cron `cron-check-meetings` agendado (~5 min)
+- [ ] `public.app_config` preenchida (ativa o cron versionado — ver acima)
 - [ ] Onboarding executado com LiveKit + Deepgram + Resend
 
 ---
