@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { RoomServiceClient } from "npm:livekit-server-sdk@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
 
@@ -10,7 +10,7 @@ const ALLOWED_SERVICES = new Set([
   "resend",
 ]);
 
-async function readSecret(admin: any, userId: string, service: string): Promise<string | null> {
+async function readSecret(admin: SupabaseClient, userId: string, service: string): Promise<string | null> {
   const { data, error } = await admin.rpc("get_user_secret", {
     _user_id: userId,
     _service: service,
@@ -22,7 +22,7 @@ async function readSecret(admin: any, userId: string, service: string): Promise<
   return (data as string | null) ?? null;
 }
 
-async function setStatus(admin: any, userId: string, service: string, status: string) {
+async function setStatus(admin: SupabaseClient, userId: string, service: string, status: string) {
   await admin.rpc("set_secret_validation", {
     _user_id: userId,
     _service: service,
@@ -60,7 +60,7 @@ serve(async (req) => {
     }
     const userId = claimsData.claims.sub as string;
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {

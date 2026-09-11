@@ -14,9 +14,9 @@ calendário).
 |---|---|
 | Typecheck | ✅ limpo |
 | Build | ✅ 12s (1.87 MB, sem code splitting) |
-| Lint | ⚠️ gate ativo; 45 erros antigos congelados em suppressions (eram 53) |
-| Testes unitários | ⚠️ 99 testes (eram 1) + 37 checagens de schema; lógica de domínio segue descoberta |
-| Testes e2e | ❌ 0 specs; config Playwright quebrada |
+| Lint | ✅ 0 erros, sem supressões (eram 53) |
+| Testes unitários | ✅ 164 testes (eram 1) + 37 de schema + 9 e2e; 97% de cobertura na lógica pura |
+| Testes e2e | ✅ 9 specs em navegador real; config reescrito |
 | CI | ✅ lint, typecheck, testes, build e schema (Fase 0/1) |
 | Migrations | ✅ versionadas e testadas contra PostgreSQL real (Fase 0/1) |
 | Autorização nas edge functions | ✅ 17 de 17 verificam o chamador (Fase 1) |
@@ -326,15 +326,48 @@ ata, e o resumo é gerado sobre um registro estruturalmente incompleto. Cobrir
 isso exige egress de áudio + transcrição batch no servidor — trabalho maior que
 esta fase, e que recomendo tratar como item próprio.
 
-### Fase 3 — Confiabilidade · ~4 dias
+### Fase 3 — Confiabilidade ✅ CONCLUÍDA
 
-| # | Ação | Critério de aceite |
+| # | Ação | Entregue |
 |---|---|---|
-| 16 | Testes unitários onde a lógica dói: `parseActionItems` (incluindo datas inválidas e "Sem prazo"), `calendar-utils`, `useRequiredKeys`, montagem do markdown de export. Meta inicial: 60% nos módulos de `lib/` e `hooks/` | `vitest run` com cobertura no CI |
-| 16 | Adicionar `lovable-agent-playwright-config` ao `package.json` (ou substituir por config Playwright padrão) + 3 specs: login→dashboard, criar reunião, entrar como convidado | `npx playwright test` verde no CI |
-| 21 | Error Boundary no React + Sentry (front e edge functions) + `request_id` propagado do cliente às funções | Erro em produção rastreável ponta a ponta |
-| 18 | Zerar os 53 erros de lint; tipar os `any` com os tipos gerados; corrigir os `exhaustive-deps` (prioridade: `MeetingDetailPage.tsx:457`) | `eslint .` sem saída |
-| 20 | Remover `src/types/database.ts`; usar só `Tables<'...'>` do arquivo gerado | Nenhum import do arquivo manual |
+| 16 | Testes onde a lógica dói | ✅ 164 testes; `src/lib` + `_shared` em **97% de statements** (meta era 60%), com limiar travado no CI |
+| 16 | Playwright | ✅ config reescrito do zero e 9 specs rodando em navegador real |
+| 21 | Error Boundary + Sentry + `request_id` | ✅ tela de falha com código rastreável, Sentry sob demanda, id propagado em toda chamada e ecoado nos logs das functions |
+| 18 | Zerar o lint | ✅ **0 erros sem nenhuma supressão**; `eslint-suppressions.json` removido por não ter mais o que suprimir |
+| 20 | Remover tipos duplicados | ✅ `src/types/database.ts` deletado |
+
+**O `lovable-agent-playwright-config` não existe.** O `playwright.config.ts`
+importava esse pacote, que não está no `package.json` **e não existe no
+registro do npm** — confirmado com `npm view`. O Playwright nunca chegou a
+carregar; não era config incompleto, era config impossível. Reescrito sem
+dependência externa, subindo `vite preview` sobre um build real com credenciais
+fictícias do Supabase. Os 9 specs cobrem o que não depende de backend:
+roteamento, proteção das 5 rotas privadas, a página de convidado sem token e
+ausência de erro de console. Fluxos com sessão real ficaram de fora de
+propósito, para o CI não depender de um projeto Supabase vivo.
+
+**Como o lint chegou a zero.** As 45 supressões não foram podadas aos poucos —
+os erros foram corrigidos: 20 `catch (err: any)` viraram o helper
+`mensagemDeErro`, que também elimina o "undefined" que o padrão antigo exibia
+no toast quando o valor lançado não era um `Error`; ícones passaram a usar
+`LucideIcon`; payloads de realtime, `Tables<'…'>`; opções de dispositivo do
+LiveKit, os tipos do próprio SDK. O `exhaustive-deps` de `MeetingDetailPage`
+foi resolvido com referência para a função mais recente, mantendo o efeito
+reagindo só às condições de disparo.
+
+**Decisão sobre o `request_id`.** O plano falava em propagá-lo do cliente às
+funções. A implementação natural seria migrar os 18 pontos que chamam
+`functions.invoke`, cada um com tratamento de erro próprio — refatoração ampla
+sobre código sem cobertura. Optei por injetar o header uma vez no wrapper de
+`fetch` que o cliente Supabase já tinha, o que cobre **todas** as chamadas
+imediatamente. O custo é que `client.ts` é um arquivo gerado: se for regerado,
+as duas linhas somem. Ficaram marcadas com comentário no próprio arquivo, e a
+perda degrada observabilidade sem quebrar comportamento.
+
+**Não coberto por teste:** `_shared/auth.ts` importa de esm.sh e o vitest não
+consegue carregá-lo. Está excluído do limiar de cobertura de propósito — as
+garantias dele vêm dos testes de schema e das guardas em
+`edge-functions-auth.test.ts`, não de teste unitário direto.
 
 ### Fase 4 — Polimento e produto · ~3 dias
 

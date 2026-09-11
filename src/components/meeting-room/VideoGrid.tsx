@@ -1,3 +1,4 @@
+import type { TrackReference } from '@livekit/components-react';
 import { useState, useEffect } from 'react';
 import {
   useTracks,
@@ -43,7 +44,7 @@ function ParticipantTile({
     >
       {videoTrack?.publication?.track ? (
         <VideoTrack
-          trackRef={videoTrack as any}
+          trackRef={videoTrack as TrackReference}
           className="w-full h-full object-cover"
         />
       ) : (
@@ -154,7 +155,7 @@ export function VideoGrid() {
         <div className="flex-1 rounded-xl overflow-hidden">
           {hasScreenShare && !pinnedParticipant ? (
             <VideoTrack
-              trackRef={screenTracks[0] as any}
+              trackRef={screenTracks[0] as TrackReference}
               className="w-full h-full object-contain bg-black rounded-xl"
             />
           ) : pinnedParticipant ? (

@@ -1,3 +1,4 @@
+import type { Tables } from '@/integrations/supabase/types';
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,7 +21,7 @@ export function useRealtimeBriefings() {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'briefings' },
         async (payload) => {
-          const briefing = payload.new as any;
+          const briefing = payload.new as Tables<'briefings'>;
           // Fetch the meeting title
           const { data: meeting } = await supabase
             .from('meetings')

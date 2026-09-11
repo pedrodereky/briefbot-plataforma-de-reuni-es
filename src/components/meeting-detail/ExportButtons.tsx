@@ -1,3 +1,4 @@
+import { buildMarkdown, nomeDoArquivo } from '@/lib/export-markdown';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -41,50 +42,15 @@ export function ExportButtons({ meeting, summaryContent }: ExportButtonsProps) {
     },
   });
 
-  const buildMarkdown = () => {
-    const attendees = Array.isArray(meeting.attendees) ? (meeting.attendees as string[]) : [];
-    const dateStr = format(new Date(meeting.starts_at), 'dd/MM/yyyy HH:mm');
-
-    let md = `# ${meeting.title}\n\n`;
-    md += `**Data:** ${dateStr}\n`;
-    if (meeting.organizer) md += `**Organizador:** ${meeting.organizer}\n`;
-    if (attendees.length > 0) md += `**Participantes:** ${attendees.join(', ')}\n`;
-    md += `\n---\n\n`;
-
-    md += `## Resumo\n\n${summaryContent}\n\n`;
-
-    if (actionItems.length > 0) {
-      md += `## Action Items\n\n`;
-      actionItems.forEach((item) => {
-        const status = item.done ? '[x]' : '[ ]';
-        md += `- ${status} **${item.owner}**: ${item.task}`;
-        if (item.due_date) md += ` (prazo: ${item.due_date})`;
-        md += `\n`;
-      });
-      md += `\n`;
-    }
-
-    if (transcripts.length > 0) {
-      md += `## Transcricao\n\n`;
-      transcripts.forEach((t) => {
-        const time = t.timestamp ? format(new Date(t.timestamp), 'HH:mm:ss') : '';
-        md += `**${t.participant_name}** ${time ? `[${time}]` : ''}: ${t.text}\n\n`;
-      });
-    }
-
-    return md;
-  };
-
   const downloadMarkdown = () => {
     setLoadingMd(true);
     try {
-      const md = buildMarkdown();
+      const md = buildMarkdown({ meeting, summaryContent, actionItems, transcripts });
       const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      const slug = meeting.title.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-      a.download = `ata-${slug}-${format(new Date(meeting.starts_at), 'yyyy-MM-dd')}.md`;
+      a.download = nomeDoArquivo(meeting.title, meeting.starts_at);
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);

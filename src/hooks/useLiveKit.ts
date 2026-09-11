@@ -1,3 +1,4 @@
+import { mensagemDeErro } from '@/lib/errors';
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -53,8 +54,8 @@ export function useLiveKit(meetingId: string) {
 
       setConnection(conn);
       return conn;
-    } catch (err: any) {
-      const msg = err.message || 'Failed to connect';
+    } catch (err) {
+      const msg = mensagemDeErro(err) || 'Failed to connect';
       setError(msg);
       throw err;
     } finally {

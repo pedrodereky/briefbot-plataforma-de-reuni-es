@@ -64,7 +64,7 @@ export default function OnboardingPage() {
       if (settings?.sender_email) setSenderEmail(settings.sender_email);
 
       const map: ConfiguredMap = {};
-      (registry ?? []).forEach((r: any) => {
+      (registry ?? []).forEach((r) => {
         if (r.is_active) map[r.service_name] = true;
       });
       setConfigured(map);
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
       .select('service_name, is_active')
       .eq('user_id', user.id);
     const map: ConfiguredMap = {};
-    (data ?? []).forEach((r: any) => { if (r.is_active) map[r.service_name] = true; });
+    (data ?? []).forEach((r) => { if (r.is_active) map[r.service_name] = true; });
     setConfigured(map);
   };
 

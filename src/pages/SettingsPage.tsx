@@ -1,3 +1,5 @@
+import type { Tables } from '@/integrations/supabase/types';
+import type { User as AuthUser } from '@supabase/supabase-js';
 import { useState, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -23,6 +25,8 @@ import {
   Video, Mic, Mail, ShieldCheck, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+type UserSettings = Tables<'user_settings'>;
 
 const DEFAULT_PRE_PROMPT = `Voce e um assistente de reunioes. Gere um briefing pre-reuniao com base nos dados fornecidos.
 
@@ -180,7 +184,7 @@ type RegistryRow = {
   updated_at: string | null;
 };
 
-function ApiKeysSection({ settings: _settings, userId }: { settings: any; userId?: string }) {
+function ApiKeysSection({ settings: _settings, userId }: { settings: UserSettings | null; userId?: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -501,7 +505,7 @@ function ReconfigureDialog({
 
 // ─── Integrations ──────────────────────────────────────────
 
-function IntegrationsSection({ settings, userId }: { settings: any; userId?: string }) {
+function IntegrationsSection({ settings, userId }: { settings: UserSettings | null; userId?: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [slackUrl, setSlackUrl] = useState('');
@@ -512,7 +516,7 @@ function IntegrationsSection({ settings, userId }: { settings: any; userId?: str
     }
   }, [settings]);
 
-  const saveField = async (fields: Record<string, any>) => {
+  const saveField = async (fields: Partial<UserSettings>) => {
     if (!userId) return;
     await supabase.from('user_settings').upsert(
       { user_id: userId, ...fields },
@@ -627,7 +631,7 @@ function IntegrationsSection({ settings, userId }: { settings: any; userId?: str
 
 // ─── Prompts ───────────────────────────────────────────────
 
-function PromptsSection({ settings, userId }: { settings: any; userId?: string }) {
+function PromptsSection({ settings, userId }: { settings: UserSettings | null; userId?: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [prePrompt, setPrePrompt] = useState('');
@@ -674,7 +678,7 @@ function PromptsSection({ settings, userId }: { settings: any; userId?: string }
 
 // ─── Account ───────────────────────────────────────────────
 
-function AccountSection({ user }: { user: any }) {
+function AccountSection({ user }: { user: AuthUser | null }) {
   const { signOut } = useAuth();
   const { toast } = useToast();
 

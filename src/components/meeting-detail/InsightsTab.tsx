@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInMinutes } from 'date-fns';
@@ -75,8 +77,8 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
       if (data?.error) throw new Error(data.error);
       toast({ title: 'Insights gerados!' });
       refetchInsights();
-    } catch (err: any) {
-      toast({ title: 'Erro ao gerar insights', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar insights', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGeneratingAI(false);
     }
@@ -198,7 +200,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
   );
 }
 
-function MetricCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function MetricCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">

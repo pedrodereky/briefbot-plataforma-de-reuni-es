@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
 import { requireMeetingOwner } from "../_shared/auth.ts";
+import { parseActionItems } from "../_shared/action-items.ts";
 
 
 const SYSTEM_PROMPT = `Você é um detector de action items em transcrições de reuniões.
@@ -23,27 +24,6 @@ Se o responsável não for claro, use "A definir".
 Se NÃO houver nenhum action item, responda apenas: NENHUM
 
 Seja conservador: só extraia itens com intenção clara de ação.`;
-
-function parseActionItems(text: string): Array<{ owner: string; task: string; due_date: string | null }> {
-  if (text.trim() === "NENHUM") return [];
-  const items: Array<{ owner: string; task: string; due_date: string | null }> = [];
-  const regex = /\[([^\]]+)\]\s*→\s*\[([^\]]+)\]\s*→\s*\[([^\]]*)\]/g;
-  let match;
-  while ((match = regex.exec(text)) !== null) {
-    const owner = match[1].trim();
-    const task = match[2].trim();
-    const rawDate = match[3].trim();
-    let due_date: string | null = null;
-    if (rawDate && rawDate.toLowerCase() !== "sem prazo" && rawDate !== "-") {
-      const parsed = new Date(rawDate);
-      if (!isNaN(parsed.getTime())) {
-        due_date = parsed.toISOString().split("T")[0];
-      }
-    }
-    items.push({ owner, task, due_date });
-  }
-  return items;
-}
 
 serve(async (req) => {
   const preflight = handlePreflight(req);

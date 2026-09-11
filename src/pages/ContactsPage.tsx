@@ -1,3 +1,4 @@
+import { mensagemDeErro } from '@/lib/errors';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Search, Plus, Pencil, Trash2, Users, Mail, Building, X, Loader2 } from 'lucide-react';
@@ -116,8 +117,8 @@ export default function ContactsPage() {
       }
       queryClient.invalidateQueries({ queryKey: ['contacts'] });
       setEditOpen(false);
-    } catch (err: any) {
-      toast({ title: 'Erro', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
