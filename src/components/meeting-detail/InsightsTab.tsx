@@ -90,7 +90,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
         <CardContent className="flex flex-col items-center gap-4 py-12">
           <Target className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            Insights requerem transcricao da reuniao. Use a sala ao vivo com Deepgram para gerar automaticamente.
+            Insights requerem transcrição da reunião. Use a sala ao vivo com Deepgram para gerar automaticamente.
           </p>
         </CardContent>
       </Card>
@@ -101,7 +101,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
     <div className="space-y-6">
       {/* Metric cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard icon={Clock} label="Duracao" value={duration ? `${duration} min` : 'N/A'} />
+        <MetricCard icon={Clock} label="Duração" value={duration ? `${duration} min` : 'N/A'} />
         <MetricCard icon={Users} label="Participantes" value={String(speakers.length)} />
         <MetricCard icon={MessageSquare} label="Palavras" value={totalWords.toLocaleString('pt-BR')} />
         <MetricCard
@@ -191,7 +191,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Clique em "Gerar Insights" para analisar a reuniao com IA.
+              Clique em "Gerar Insights" para analisar a reunião com IA.
             </p>
           )}
         </CardContent>

@@ -150,7 +150,7 @@ export default function DashboardPage() {
           <CreateMeetingDialog
             open={createOpen}
             onOpenChange={setCreateOpen}
-            trigger={<Button size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Reuniao</Button>}
+            trigger={<Button size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Reunião</Button>}
           />
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function DashboardPage() {
         {upcoming.length === 0 ? (
           <div className="flex flex-col items-center gap-2 rounded-lg border border-dashed border-border py-10">
             <Calendar className="h-8 w-8 text-muted-foreground" />
-            <p className="text-sm text-muted-foreground">Nenhuma reuniao encontrada. Crie uma nova reuniao.</p>
+            <p className="text-sm text-muted-foreground">Nenhuma reunião encontrada. Crie uma nova reunião.</p>
           </div>
         ) : (
           <div className="space-y-3">

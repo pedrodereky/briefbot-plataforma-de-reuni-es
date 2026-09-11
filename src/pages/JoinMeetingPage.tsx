@@ -83,9 +83,9 @@ export default function JoinMeetingPage() {
   if (meetingStatus === 'ended') {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-        <h1 className="text-2xl font-bold">Reuniao Encerrada</h1>
+        <h1 className="text-2xl font-bold">Reunião Encerrada</h1>
         <p className="text-muted-foreground">
-          Esta reuniao ja foi finalizada.
+          Esta reunião já foi finalizada.
         </p>
       </div>
     );
@@ -102,7 +102,7 @@ export default function JoinMeetingPage() {
   if (!meeting) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-        <h1 className="text-xl font-bold">Reuniao nao encontrada</h1>
+        <h1 className="text-xl font-bold">Reunião não encontrada</h1>
         <p className="text-muted-foreground">
           Verifique se o link esta correto.
         </p>
@@ -118,7 +118,7 @@ export default function JoinMeetingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="w-5 h-5" />
-              Entrar na Reuniao
+              Entrar na Reunião
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">

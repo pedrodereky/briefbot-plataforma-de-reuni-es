@@ -22,7 +22,7 @@ export function useCreateInstantMeeting() {
         .from('meetings')
         .insert({
           user_id: user.id,
-          title: 'Reuniao Rapida',
+          title: 'Reunião Rapida',
           starts_at: new Date().toISOString(),
           calendar_event_id: crypto.randomUUID(),
           meeting_status: 'lobby',
@@ -37,7 +37,7 @@ export function useCreateInstantMeeting() {
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       navigate(`/meetings/${meeting.id}/room`);
     } catch (err) {
-      toast({ title: 'Erro ao criar reuniao', description: mensagemDeErro(err), variant: 'destructive' });
+      toast({ title: 'Erro ao criar reunião', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setCreating(false);
     }

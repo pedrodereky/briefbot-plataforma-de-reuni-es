@@ -7,23 +7,36 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import LoginPage from "./pages/LoginPage";
-import DashboardPage from "./pages/DashboardPage";
-import MeetingsPage from "./pages/MeetingsPage";
-import MeetingDetailPage from "./pages/MeetingDetailPage";
-import ActionItemsPage from "./pages/ActionItemsPage";
-import CalendarPage from "./pages/CalendarPage";
-import ContactsPage from "./pages/ContactsPage";
-import RecordingsPage from "./pages/RecordingsPage";
-import SettingsPage from "./pages/SettingsPage";
-import MeetingRoomPage from "./pages/MeetingRoomPage";
-import JoinMeetingPage from "./pages/JoinMeetingPage";
-import OnboardingPage from "./pages/OnboardingPage";
-import NotFound from "./pages/NotFound";
+import { Suspense, lazy } from "react";
+import { Loader2 } from "lucide-react";
+
+// Cada rota vira um arquivo próprio: quem abre o login não baixa mais a sala
+// de reunião, os gráficos e o renderizador de markdown junto (auditoria P2
+// item 19). A divisão por rota se soma ao manualChunks do vite.config.ts.
+const LoginPage = lazy(() => import("./pages/LoginPage"));
+const DashboardPage = lazy(() => import("./pages/DashboardPage"));
+const MeetingsPage = lazy(() => import("./pages/MeetingsPage"));
+const MeetingDetailPage = lazy(() => import("./pages/MeetingDetailPage"));
+const ActionItemsPage = lazy(() => import("./pages/ActionItemsPage"));
+const CalendarPage = lazy(() => import("./pages/CalendarPage"));
+const ContactsPage = lazy(() => import("./pages/ContactsPage"));
+const RecordingsPage = lazy(() => import("./pages/RecordingsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const MeetingRoomPage = lazy(() => import("./pages/MeetingRoomPage"));
+const JoinMeetingPage = lazy(() => import("./pages/JoinMeetingPage"));
+const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
+const NotFound = lazy(() => import("./pages/NotFound"));
 import { AppHooks } from "./components/AppHooks";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const queryClient = new QueryClient();
+
+/** Exibido enquanto o arquivo da rota é buscado. */
+const CarregandoRota = () => (
+  <div className="flex min-h-screen items-center justify-center bg-background">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const App = () => (
   <ErrorBoundary>
@@ -35,7 +48,8 @@ const App = () => (
           <AuthProvider>
             <ScrollToTop />
             <AppHooks />
-            <Routes>
+            <Suspense fallback={<CarregandoRota />}>
+              <Routes>
               <Route path="/login" element={<LoginPage />} />
               {/* Onboarding wizard (full-screen, no sidebar) */}
               <Route
@@ -75,7 +89,8 @@ const App = () => (
                 <Route path="/settings" element={<SettingsPage />} />
               </Route>
               <Route path="*" element={<NotFound />} />
-            </Routes>
+              </Routes>
+            </Suspense>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>

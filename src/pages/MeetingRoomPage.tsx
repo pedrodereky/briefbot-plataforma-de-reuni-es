@@ -163,10 +163,10 @@ export default function MeetingRoomPage() {
       if (data?.error) throw new Error(data.error);
       setIsRecording(action === 'start');
       toast({
-        title: action === 'start' ? 'Gravacao iniciada' : 'Gravacao finalizada',
+        title: action === 'start' ? 'Gravação iniciada' : 'Gravação finalizada',
       });
     } catch (err) {
-      toast({ title: 'Erro na gravacao', description: mensagemDeErro(err), variant: 'destructive' });
+      toast({ title: 'Erro na gravação', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setRecordingLoading(false);
     }
@@ -176,13 +176,13 @@ export default function MeetingRoomPage() {
   if (meetingStatus === 'ended' && !connection) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-        <h1 className="text-2xl font-bold">Reuniao Encerrada</h1>
+        <h1 className="text-2xl font-bold">Reunião Encerrada</h1>
         <p className="text-muted-foreground">
           O resumo esta sendo gerado automaticamente...
         </p>
         <Button onClick={() => navigate(`/meetings/${id}`)} className="gap-2">
           <ArrowLeft className="w-4 h-4" />
-          Ver Detalhes da Reuniao
+          Ver Detalhes da Reunião
         </Button>
       </div>
     );
@@ -200,7 +200,7 @@ export default function MeetingRoomPage() {
   if (!meeting) {
     return (
       <div className="h-screen flex flex-col items-center justify-center gap-4 bg-background">
-        <h1 className="text-xl font-bold">Reuniao nao encontrada</h1>
+        <h1 className="text-xl font-bold">Reunião não encontrada</h1>
         <Button onClick={() => navigate('/meetings')} variant="outline">
           Voltar
         </Button>

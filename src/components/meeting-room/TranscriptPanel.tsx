@@ -24,14 +24,14 @@ export function TranscriptPanel({
     <div className="w-[320px] border-l bg-card flex flex-col h-full">
       <div className="p-3 border-b flex items-center gap-2">
         <FileText className="w-4 h-4" />
-        <span className="text-sm font-medium">Transcricao ao Vivo</span>
+        <span className="text-sm font-medium">Transcrição ao Vivo</span>
       </div>
 
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
           {transcripts.length === 0 && !interimText && (
             <p className="text-sm text-muted-foreground text-center py-8">
-              A transcricao aparecera aqui quando alguem comecar a falar...
+              A transcrição aparecerá aqui quando alguém começar a falar...
             </p>
           )}
 

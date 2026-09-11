@@ -13,10 +13,10 @@ calendário).
 | Dimensão | Estado |
 |---|---|
 | Typecheck | ✅ limpo |
-| Build | ✅ 12s (1.87 MB, sem code splitting) |
+| Build | ✅ dividido por rota; login em 215,8 kB gzip (era 525) |
 | Lint | ✅ 0 erros, sem supressões (eram 53) |
-| Testes unitários | ✅ 164 testes (eram 1) + 37 de schema + 9 e2e; 97% de cobertura na lógica pura |
-| Testes e2e | ✅ 9 specs em navegador real; config reescrito |
+| Testes unitários | ✅ 186 testes (eram 1) + 37 de schema + 12 e2e; 98% de cobertura na lógica pura |
+| Testes e2e | ✅ 12 specs em navegador real, incluindo orçamento de bundle |
 | CI | ✅ lint, typecheck, testes, build e schema (Fase 0/1) |
 | Migrations | ✅ versionadas e testadas contra PostgreSQL real (Fase 0/1) |
 | Autorização nas edge functions | ✅ 17 de 17 verificam o chamador (Fase 1) |
@@ -369,20 +369,72 @@ consegue carregá-lo. Está excluído do limiar de cobertura de propósito — a
 garantias dele vêm dos testes de schema e das guardas em
 `edge-functions-auth.test.ts`, não de teste unitário direto.
 
-### Fase 4 — Polimento e produto · ~3 dias
+### Fase 4 — Polimento e produto ✅ CONCLUÍDA
 
-| # | Ação | Critério de aceite |
+| # | Ação | Entregue |
 |---|---|---|
-| 19 | `React.lazy` nas rotas + `manualChunks` separando LiveKit, Recharts e markdown | Chunk inicial < 300 kB gzip |
-| 22 | Varredura de acentuação em todos os textos de UI | Nenhuma ocorrência das 30 strings sem acento |
-| 13 | Decidir o calendário: (a) export `.ics` + detecção de conflito — barato, cobre 80%; ou (b) OAuth Google Calendar com sync bidirecional — caro. **Recomendo (a) agora**, (b) só com demanda validada | Convite de reunião abre no calendário nativo do participante |
+| 19 | Divisão do bundle | ✅ login saiu de **525 kB para 215,8 kB gzip** (meta era < 300), medido em navegador real e travado por teste de orçamento |
+| 22 | Acentuação | ✅ 134 linhas corrigidas em 22 arquivos; varredura final sem ocorrências |
+| 13 | Calendário | ✅ export `.ics` (RFC 5545) e detecção de conflito de horário, com 22 testes |
+
+**O `manualChunks` óbvio piorava o problema.** A intuição era criar um chunk
+para cada lib pesada — LiveKit, recharts, react-markdown. Medindo, descobri
+dois efeitos contrários:
+
+1. Chunk manual para lib usada **apenas por rota lazy** faz o Rollup emitir um
+   `import` de efeito colateral na entry, e o navegador baixa o pacote inteiro
+   na primeira tela. Removidas essas regras, o Vite absorve cada lib no chunk
+   da rota que a usa — que é o comportamento desejado.
+2. Com `manualChunks` em forma de objeto, o `clsx` (por trás do `cn()`, usado
+   por quase todo componente) foi absorvido para dentro do chunk do recharts.
+   Resultado: **qualquer** tela que chamasse `cn()` baixava 383 kB de
+   biblioteca de gráficos. Só apareceu porque o teste de orçamento mede o que o
+   navegador realmente busca, não o tamanho dos arquivos no disco.
+
+A configuração final mantém chunk manual só para o que o caminho inicial usa de
+fato, mais um chunk próprio para os utilitários de classe.
+
+**O orçamento virou teste.** `e2e/orcamento-bundle.spec.ts` abre o login em
+navegador real, soma o que foi transferido (comprimido) e falha acima de
+300 kB — além de dois testes que garantem que LiveKit e recharts não voltem ao
+caminho inicial. Um limite que ninguém verifica é furado no primeiro import
+distraído.
+
+**Calendário: a opção barata, como recomendado.** `.ics` padrão que Google
+Agenda, Outlook e Apple Calendar importam, sem OAuth e sem guardar credencial
+de calendário de ninguém. Somado a isso, aviso de choque de horário na criação
+da reunião — que não bloqueia, só informa. A sincronização bidirecional
+continua fora de escopo até haver demanda que a justifique; `calendar_event_id`
+segue sendo um UUID interno.
+
+**Correção de conteúdo além do combinado:** a lista de contatos montava o plural
+concatenando (`reuniao` + `es`), produzindo "reuniaoes". Passou a escolher entre
+"reunião" e "reuniões".
 
 ---
 
-## Recomendação
+## Estado final
 
-Fases 0 e 1 (~1 semana) são pré-requisito para expor o produto a qualquer usuário
-externo: o item 2 sozinho permite que um estranho gaste dinheiro na conta LiveKit de
-um cliente e dispare e-mail com o domínio dele. A Fase 2 é o que transforma "as telas
-existem" em "o produto entrega" — hoje gravação e sincronização de status estão
-quebradas de ponta a ponta, não parcialmente.
+As cinco fases estão concluídas. O que continua pendente **não é código** — são
+passos de operação que dependem de acesso ao ambiente:
+
+1. **Aplicar as migrations em produção.** A mais urgente é a correção de
+   privilégio das funções `SECURITY DEFINER` (item 0): enquanto ela não for
+   aplicada, as chaves do Vault de qualquer usuário seguem legíveis por
+   requisição anônima.
+2. **Reconciliar o baseline** com `supabase db pull` e regerar
+   `src/integrations/supabase/types.ts`, que foi editado à mão.
+3. **Configurar as variáveis**: `ALLOWED_ORIGINS`, `CRON_SECRET`,
+   `RECORDING_S3_*` e, opcionalmente, `VITE_SENTRY_DSN`.
+4. **Popular `public.app_config`** para ativar o cron versionado.
+
+Duas coisas entregues sem verificação de ponta a ponta, por não haver como
+executá-las nesta sessão: o caminho do egress S3 e o formato do evento
+`egress_ended` (a primeira gravação em homologação é o teste), e o envio real de
+e-mail e Slack.
+
+Um limite de produto permanece em aberto e não é resíduo de implementação: a
+transcrição captura só o microfone local, então quem não abre a aba com
+transcrição ativa não entra na ata. Cobrir isso exige egress de áudio e
+transcrição batch no servidor — trabalho que merece ser tratado como item
+próprio, não como conserto.

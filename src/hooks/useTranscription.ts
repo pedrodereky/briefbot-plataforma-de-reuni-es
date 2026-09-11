@@ -84,14 +84,14 @@ export function useTranscription({
         body: { meeting_id: meetingId, join_token: joinToken ?? undefined },
       });
       if (keyErr || !keyData?.key) {
-        throw new Error('Nao foi possivel obter credencial de transcricao');
+        throw new Error('Não foi possível obter credencial de transcrição');
       }
 
       const mimeType = escolherMimeType();
       if (!mimeType) {
         // Antes o construtor do MediaRecorder simplesmente lançava e a
         // transcrição morria calada — principalmente no Safari/iOS.
-        throw new Error('Seu navegador nao suporta gravacao de audio para transcricao');
+        throw new Error('Seu navegador não suporta gravação de áudio para transcrição');
       }
 
       const ws = new WebSocket(
@@ -143,8 +143,8 @@ export function useTranscription({
             // O retorno não era checado: falha de RLS ou de rede descartava o
             // trecho em silêncio, e a ata saía incompleta sem ninguém saber.
             if (insertErr) {
-              console.error('Falha ao salvar trecho da transcricao', insertErr);
-              setError('Parte da transcricao nao foi salva');
+              console.error('Falha ao salvar trecho da transcrição', insertErr);
+              setError('Parte da transcrição não foi salva');
             }
           } else if (transcript.trim()) {
             setInterimText(transcript);
@@ -155,7 +155,7 @@ export function useTranscription({
       };
 
       ws.onerror = () => {
-        setError('Erro na conexao de transcricao');
+        setError('Erro na conexão de transcrição');
       };
 
       ws.onclose = () => {
@@ -167,7 +167,7 @@ export function useTranscription({
         // Queda não solicitada: tenta voltar. Sem isto, uma oscilação de rede
         // encerrava a transcrição pelo resto da reunião.
         if (tentativasRef.current >= MAX_TENTATIVAS_RECONEXAO) {
-          setError('Transcricao interrompida. Recarregue a pagina para tentar de novo.');
+          setError('Transcrição interrompida. Recarregue a página para tentar de novo.');
           return;
         }
 
@@ -178,7 +178,7 @@ export function useTranscription({
           const stream = streamRef.current;
           if (!stream || pararRef.current) return;
           conectar(stream).catch(() => {
-            setError('Nao foi possivel restabelecer a transcricao');
+            setError('Não foi possível restabelecer a transcrição');
           });
         }, espera);
       };
@@ -195,7 +195,7 @@ export function useTranscription({
       try {
         await conectar(audioStream);
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Falha ao iniciar transcricao');
+        setError(err instanceof Error ? err.message : 'Falha ao iniciar transcrição');
         setIsTranscribing(false);
       }
     },

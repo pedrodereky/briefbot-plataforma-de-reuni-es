@@ -96,6 +96,17 @@ ON CONFLICT (chave) DO UPDATE SET valor = EXCLUDED.valor, atualizado = now();
 
 Enquanto não for feito, o job roda e sai sem chamar nada, registrando um NOTICE.
 
+### Calendário
+
+A reunião não é sincronizada com Google Agenda ou Outlook — `calendar_event_id`
+é um identificador interno. O que existe:
+
+- **Convite `.ics`** (botão "Adicionar ao calendário" no detalhe da reunião),
+  no formato padrão RFC 5545, importável por qualquer cliente de calendário;
+- **Aviso de choque de horário** ao criar reunião, que informa sem bloquear.
+
+Sincronização bidirecional via OAuth continua fora de escopo.
+
 ### Link de convite
 
 Entrar em uma reunião exige o token que vai na URL: `/join/:id?t=<token>`.
@@ -138,7 +149,7 @@ npm run dev            # servidor local
 npm run lint           # zero erros é a regra; o CI falha em qualquer um
 npm test               # testes de unidade
 npm run test:coverage  # idem, com limiar de cobertura
-npm run test:e2e       # Playwright sobre um build real
+npm run test:e2e       # Playwright sobre um build real, inclui orçamento de bundle
 ./scripts/test-migrations.sh   # migrations num PostgreSQL efêmero
 ```
 

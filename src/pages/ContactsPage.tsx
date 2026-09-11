@@ -151,7 +151,7 @@ export default function ContactsPage() {
       </div>
 
       <p className="text-sm text-muted-foreground">
-        Participantes frequentes das suas reunioes. Novos participantes sao adicionados automaticamente.
+        Participantes frequentes das suas reuniões. Novos participantes são adicionados automaticamente.
       </p>
 
       {/* Search */}
@@ -171,7 +171,7 @@ export default function ContactsPage() {
           <CardContent className="flex flex-col items-center gap-3 py-12">
             <Users className="h-10 w-10 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">
-              {search ? 'Nenhum contato encontrado.' : 'Nenhum contato ainda. Adicione manualmente ou eles serao criados automaticamente ao criar reunioes.'}
+              {search ? 'Nenhum contato encontrado.' : 'Nenhum contato ainda. Adicione manualmente ou eles serão criados automaticamente ao criar reuniões.'}
             </p>
             {!search && (
               <Button variant="outline" onClick={openNew} className="gap-1">
@@ -205,7 +205,9 @@ export default function ContactsPage() {
                         </span>
                       )}
                       {(c.meeting_count ?? 0) > 0 && (
-                        <span>{c.meeting_count} reuniao{(c.meeting_count ?? 0) !== 1 && 'es'}</span>
+                        <span>
+                          {c.meeting_count} {(c.meeting_count ?? 0) === 1 ? 'reunião' : 'reuniões'}
+                        </span>
                       )}
                     </div>
                   </div>
@@ -223,7 +225,7 @@ export default function ContactsPage() {
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Remover {c.name}?</AlertDialogTitle>
-                        <AlertDialogDescription>O contato sera removido da sua lista.</AlertDialogDescription>
+                        <AlertDialogDescription>O contato será removido da sua lista.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancelar</AlertDialogCancel>

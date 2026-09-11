@@ -1,3 +1,4 @@
+import { buildICS, nomeArquivoICS } from '@/lib/ics';
 import type { TablesUpdate } from '@/integrations/supabase/types';
 import { mensagemDeErro } from '@/lib/errors';
 import { useState, useEffect, useRef } from 'react';
@@ -8,7 +9,7 @@ import { format, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Clock, Users, Loader2, Plus, CalendarIcon, Video, Link2, Copy,
-  XCircle, CalendarClock,
+  XCircle, CalendarClock, CalendarPlus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -188,7 +189,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
               className="gap-2"
             >
               <Video className="h-4 w-4" />
-              Iniciar Reuniao
+              Iniciar Reunião
             </Button>
             <Button
               variant="outline"
@@ -198,7 +199,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
                 if (!link) {
                   toast({
                     title: 'Link indisponivel',
-                    description: 'Esta reuniao ainda nao tem token de convite.',
+                    description: 'Esta reunião ainda não tem token de convite.',
                     variant: 'destructive',
                   });
                   return;
@@ -210,6 +211,48 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
             >
               <Link2 className="h-3.5 w-3.5" />
               Copiar link de convite
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Convite .ics: o participante consegue pôr a reunião na
+                // agenda dele sem que a plataforma precise de OAuth de
+                // calendário (auditoria P1 item 13).
+                try {
+                  const ics = buildICS({
+                    uid: meeting.id,
+                    title: meeting.title,
+                    startsAt: meeting.starts_at,
+                    endsAt: meeting.ends_at,
+                    description: meeting.description,
+                    organizer: meeting.organizer,
+                    attendees: Array.isArray(meeting.attendees)
+                      ? (meeting.attendees as string[])
+                      : [],
+                    joinUrl: buildJoinLink(meeting.id, meeting.join_token),
+                  });
+                  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = nomeArquivoICS(meeting.title);
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  toast({
+                    title: 'Não foi possível gerar o convite',
+                    description: mensagemDeErro(err),
+                    variant: 'destructive',
+                  });
+                }
+              }}
+              className="gap-1"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Adicionar ao calendário
             </Button>
 
             {/* Reschedule */}
@@ -254,7 +297,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
           <div className="flex gap-2 pt-2">
             <Button onClick={() => navigate(`/meetings/${meeting.id}/room`)} className="gap-2">
               <Video className="h-4 w-4" />
-              Entrar na Reuniao
+              Entrar na Reunião
             </Button>
           </div>
         )}
@@ -567,7 +610,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Gerando ata automaticamente a partir da transcricao...</p>
+        <p className="text-sm text-muted-foreground">Gerando ata automaticamente a partir da transcrição...</p>
       </div>
     );
   }
@@ -578,10 +621,10 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       {!hasLiveTranscript && !showManualForm && (
         <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border py-10">
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            A ata sera gerada automaticamente quando houver uma transcricao da reuniao.
+            A ata será gerada automaticamente quando houver uma transcrição da reunião.
           </p>
           <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Inicie uma reuniao ao vivo para gerar a transcricao, ou escreva a ata manualmente.
+            Inicie uma reunião ao vivo para gerar a transcrição, ou escreva a ata manualmente.
           </p>
           <Button variant="outline" size="sm" onClick={() => setShowManualForm(true)}>
             Escrever manualmente
@@ -592,7 +635,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       {hasLiveTranscript && !generating && (
         <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border py-10">
           <p className="text-sm text-muted-foreground text-center">
-            Transcricao disponivel. A ata sera gerada automaticamente.
+            Transcrição disponível. A ata será gerada automaticamente.
           </p>
           <Button onClick={doGenerate} className="gap-2">
             <Loader2 className="h-4 w-4" />
@@ -609,7 +652,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
               <Textarea
                 value={manualAta}
                 onChange={(e) => setManualAta(e.target.value)}
-                placeholder={"## Resumo\n\nDescreva os pontos discutidos...\n\n## Decisoes\n\n- ...\n\n## Action Items\n\n- [Responsavel] → [Tarefa] → [Prazo]"}
+                placeholder={"## Resumo\n\nDescreva os pontos discutidos...\n\n## Decisoes\n\n- ...\n\n## Action Items\n\n- [Responsável] → [Tarefa] → [Prazo]"}
                 rows={15}
                 className="font-mono text-sm"
               />
@@ -816,9 +859,9 @@ export default function MeetingDetailPage() {
           <TabsTrigger value="briefing">Briefing Pre</TabsTrigger>
           <TabsTrigger value="summary">Ata</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
-          <TabsTrigger value="transcript">Transcricao</TabsTrigger>
+          <TabsTrigger value="transcript">Transcrição</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="recording">Gravacao</TabsTrigger>
+          <TabsTrigger value="recording">Gravação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="briefing" className="mt-4">
