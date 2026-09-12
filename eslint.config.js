@@ -23,4 +23,21 @@ export default tseslint.config(
       "@typescript-eslint/no-unused-vars": "off",
     },
   },
+  {
+    /**
+     * Arquivos gerados pela Lovable — o cabeçalho deles diz "This file is
+     * automatically generated. Do not edit it directly."
+     *
+     * `prefer-const` já derrubou o CI duas vezes aqui: corrigimos o `timer` à
+     * mão, a Lovable regenerou o arquivo e o erro voltou com outra forma
+     * (`let timer: ReturnType<typeof setTimeout>` declarado antes de atribuir).
+     * Enquanto quem escreve o arquivo for o gerador, corrigir à mão é esteira:
+     * o conserto real é não aplicar a regra de estilo a código que não é
+     * nosso. As regras de correção continuam valendo neste diretório.
+     */
+    files: ["src/integrations/supabase/**"],
+    rules: {
+      "prefer-const": "off",
+    },
+  },
 );
