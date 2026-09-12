@@ -127,6 +127,11 @@ requisição **anônima** via PostgREST, o que expõe as chaves decriptadas de
 LiveKit, Deepgram e Resend de qualquer usuário. A migration da Fase 1 revoga
 `EXECUTE` de `PUBLIC` em todas as funções `SECURITY DEFINER` e é idempotente.
 
+**1b. Conferir que aplicou** — `supabase/tests/verificar_producao.sql`
+
+Cole no SQL Editor. É somente leitura e devolve 14 checagens com ✅/❌. Logo
+após aplicar, o único ❌ esperado é o do `app_config` (passo 4).
+
 **2. Reconciliar o schema** — `supabase db pull`
 
 O baseline foi reconstruído a partir dos tipos gerados e do código, não de um

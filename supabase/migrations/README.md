@@ -35,13 +35,29 @@ arquivo aqui — nunca uma edição no SQL Editor do painel.
 
 ## Como rodar os testes
 
+Há dois, com propósitos diferentes.
+
+**Antes de aplicar — banco descartável:**
+
 ```bash
 ./scripts/test-migrations.sh
 ```
 
 Sobe um PostgreSQL efêmero, aplica todas as migrations em ordem, reaplica para
-provar idempotência e roda `supabase/tests/schema_test.sql`. O mesmo script roda
-no CI a cada push.
+provar idempotência e roda `supabase/tests/schema_test.sql` (37 checagens). O
+mesmo script roda no CI a cada push. **Não aponte para um banco real:** esse
+arquivo insere dados de teste.
+
+**Depois de aplicar — banco real:**
+
+Cole `supabase/tests/verificar_producao.sql` no SQL Editor. É **somente
+leitura** e pode rodar em produção quantas vezes quiser. Devolve 14 linhas com
+✅ ou ❌, cobrindo a correção de privilégio, os limites do papel `anon`, o
+backfill do `join_token`, as colunas de gravação, o trigger, o realtime, a RLS
+e o cron.
+
+O único ❌ esperado logo após aplicar é o do `app_config`, que depende do passo
+manual abaixo. Qualquer outro ❌ indica que algo não aplicou.
 
 ## Garantias já verificadas
 
