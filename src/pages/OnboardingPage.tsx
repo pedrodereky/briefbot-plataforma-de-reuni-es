@@ -17,7 +17,7 @@ import {
 import { cn } from '@/lib/utils';
 
 const STEPS = [
-  { id: 'welcome', label: 'Inicio' },
+  { id: 'welcome', label: 'Início' },
   { id: 'livekit', label: 'LiveKit' },
   { id: 'deepgram', label: 'Deepgram' },
   { id: 'resend', label: 'Resend' },
@@ -64,7 +64,7 @@ export default function OnboardingPage() {
       if (settings?.sender_email) setSenderEmail(settings.sender_email);
 
       const map: ConfiguredMap = {};
-      (registry ?? []).forEach((r: any) => {
+      (registry ?? []).forEach((r) => {
         if (r.is_active) map[r.service_name] = true;
       });
       setConfigured(map);
@@ -79,7 +79,7 @@ export default function OnboardingPage() {
       .select('service_name, is_active')
       .eq('user_id', user.id);
     const map: ConfiguredMap = {};
-    (data ?? []).forEach((r: any) => { if (r.is_active) map[r.service_name] = true; });
+    (data ?? []).forEach((r) => { if (r.is_active) map[r.service_name] = true; });
     setConfigured(map);
   };
 
@@ -159,7 +159,7 @@ export default function OnboardingPage() {
         { onConflict: 'user_id' }
       );
       queryClient.invalidateQueries({ queryKey: ['user_settings_onboarding'] });
-      toast({ title: 'Configuracao concluida!' });
+      toast({ title: 'Configuração concluida!' });
       navigate('/dashboard', { replace: true });
     } catch {
       toast({ title: 'Erro ao salvar', variant: 'destructive' });
@@ -262,7 +262,7 @@ function ConfiguredBadge({ configured }: { configured: boolean }) {
       <ShieldCheck className="h-3 w-3" /> Configurada
     </Badge>
   ) : (
-    <Badge variant="outline" className="ml-2">Nao configurada</Badge>
+    <Badge variant="outline" className="ml-2">Não configurada</Badge>
   );
 }
 
@@ -275,15 +275,15 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         </div>
         <CardTitle className="text-2xl">Bem-vindo ao BriefBot</CardTitle>
         <CardDescription className="text-base">
-          Vamos configurar sua plataforma de reunioes inteligentes em poucos minutos.
+          Vamos configurar sua plataforma de reuniões inteligentes em poucos minutos.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3">
           {[
-            { n: '1', t: 'LiveKit', d: 'Motor de video/audio para reunioes ao vivo' },
-            { n: '2', t: 'Deepgram', d: 'Transcricao em tempo real durante reunioes' },
-            { n: '3', t: 'IA integrada', d: 'Briefings e resumos inteligentes (ja configurado!)' },
+            { n: '1', t: 'LiveKit', d: 'Motor de vídeo/áudio para reuniões ao vivo' },
+            { n: '2', t: 'Deepgram', d: 'Transcrição em tempo real durante reuniões' },
+            { n: '3', t: 'IA integrada', d: 'Briefings e resumos inteligentes (já configurado!)' },
           ].map((item) => (
             <div key={item.n} className="flex items-center gap-3 rounded-lg border p-3">
               <div className="flex h-8 w-8 items-center justify-center rounded-full bg-muted text-sm font-bold">{item.n}</div>
@@ -297,7 +297,7 @@ function WelcomeStep({ onNext }: { onNext: () => void }) {
         <Separator />
         <p className="text-xs text-muted-foreground text-center inline-flex items-center justify-center gap-1.5 w-full">
           <ShieldCheck className="h-3.5 w-3.5" />
-          Suas chaves sao armazenadas criptografadas no cofre seguro do banco de dados.
+          Suas chaves são armazenadas criptografadas no cofre seguro do banco de dados.
         </p>
         <Button onClick={onNext} className="w-full gap-2">
           Comecar <ArrowRight className="h-4 w-4" />
@@ -333,7 +333,7 @@ function LiveKitStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
             <Video className="h-5 w-5 text-violet-600" />
           </div>
-          LiveKit — Video e Audio
+          LiveKit — Vídeo e Áudio
           <ConfiguredBadge configured={configured} />
         </CardTitle>
         <CardDescription>
@@ -378,7 +378,7 @@ function LiveKitStep({
           {configured ? 'Atualizar credenciais LiveKit' : 'Salvar credenciais LiveKit'}
         </Button>
 
-        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Proximo' : 'Pular por agora'} />
+        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Próximo' : 'Pular por agora'} />
       </CardContent>
     </Card>
   );
@@ -402,7 +402,7 @@ function DeepgramStep({
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
             <Mic className="h-5 w-5 text-emerald-600" />
           </div>
-          Deepgram — Transcricao
+          Deepgram — Transcrição
           <ConfiguredBadge configured={configured} />
         </CardTitle>
         <CardDescription>
@@ -437,7 +437,7 @@ function DeepgramStep({
           {configured ? 'Atualizar credencial Deepgram' : 'Salvar credencial Deepgram'}
         </Button>
 
-        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Proximo' : 'Pular por agora'} />
+        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Próximo' : 'Pular por agora'} />
       </CardContent>
     </Card>
   );
@@ -515,13 +515,13 @@ function ResendStep({
             <Input
               value={senderEmail}
               onChange={(e) => onSenderEmailChange(e.target.value)}
-              placeholder="reunioes@seudominio.com"
+              placeholder="reuniões@seudominio.com"
               type="email"
             />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          Os convites serao enviados como: <strong>{senderName || 'BriefBot'} &lt;{senderEmail || 'reunioes@seudominio.com'}&gt;</strong>
+          Os convites serão enviados como: <strong>{senderName || 'BriefBot'} &lt;{senderEmail || 'reuniões@seudominio.com'}&gt;</strong>
         </p>
 
         <Button onClick={() => onSave(apiKey, clear)} disabled={saving || !filled} variant="outline" className="w-full gap-2">
@@ -529,7 +529,7 @@ function ResendStep({
           Salvar configuracao de email
         </Button>
 
-        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Proximo' : 'Pular por agora'} />
+        <StepNav onPrev={onPrev} onNext={onNext} nextLabel={configured ? 'Próximo' : 'Pular por agora'} />
       </CardContent>
     </Card>
   );
@@ -550,13 +550,13 @@ function DoneStep({
         </div>
         <CardTitle className="text-2xl">Tudo pronto!</CardTitle>
         <CardDescription className="text-base">
-          Revise abaixo. Voce pode voltar e preencher o que falta ou ir direto ao dashboard.
+          Revise abaixo. Você pode voltar e preencher o que falta ou ir direto ao dashboard.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <CheckItem ok={hasLiveKit} label="LiveKit (video/audio)" />
-          <CheckItem ok={hasDeepgram} label="Deepgram (transcricao)" />
+          <CheckItem ok={hasLiveKit} label="LiveKit (vídeo/áudio)" />
+          <CheckItem ok={hasDeepgram} label="Deepgram (transcrição)" />
           <CheckItem ok label="IA integrada (briefings e resumos)" />
           <CheckItem ok={hasResend} label="Resend (convites e lembretes por email)" />
         </div>
@@ -579,7 +579,7 @@ function DoneStep({
 
 // ─── Shared ───────────────────────────────────────────────
 
-function StepNav({ onPrev, onNext, nextLabel = 'Proximo' }: { onPrev: () => void; onNext: () => void; nextLabel?: string }) {
+function StepNav({ onPrev, onNext, nextLabel = 'Próximo' }: { onPrev: () => void; onNext: () => void; nextLabel?: string }) {
   return (
     <div className="flex gap-3 pt-2">
       <Button variant="outline" onClick={onPrev} className="gap-1">

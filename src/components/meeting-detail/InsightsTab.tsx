@@ -1,3 +1,5 @@
+import type { LucideIcon } from 'lucide-react';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { differenceInMinutes } from 'date-fns';
@@ -75,8 +77,8 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
       if (data?.error) throw new Error(data.error);
       toast({ title: 'Insights gerados!' });
       refetchInsights();
-    } catch (err: any) {
-      toast({ title: 'Erro ao gerar insights', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar insights', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGeneratingAI(false);
     }
@@ -88,7 +90,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
         <CardContent className="flex flex-col items-center gap-4 py-12">
           <Target className="h-10 w-10 text-muted-foreground" />
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            Insights requerem transcricao da reuniao. Use a sala ao vivo com Deepgram para gerar automaticamente.
+            Insights requerem transcrição da reunião. Use a sala ao vivo com Deepgram para gerar automaticamente.
           </p>
         </CardContent>
       </Card>
@@ -99,7 +101,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
     <div className="space-y-6">
       {/* Metric cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard icon={Clock} label="Duracao" value={duration ? `${duration} min` : 'N/A'} />
+        <MetricCard icon={Clock} label="Duração" value={duration ? `${duration} min` : 'N/A'} />
         <MetricCard icon={Users} label="Participantes" value={String(speakers.length)} />
         <MetricCard icon={MessageSquare} label="Palavras" value={totalWords.toLocaleString('pt-BR')} />
         <MetricCard
@@ -189,7 +191,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Clique em "Gerar Insights" para analisar a reuniao com IA.
+              Clique em "Gerar Insights" para analisar a reunião com IA.
             </p>
           )}
         </CardContent>
@@ -198,7 +200,7 @@ export function InsightsTab({ meeting }: { meeting: Meeting }) {
   );
 }
 
-function MetricCard({ icon: Icon, label, value }: { icon: any; label: string; value: string }) {
+function MetricCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
   return (
     <Card>
       <CardContent className="flex items-center gap-3 p-4">

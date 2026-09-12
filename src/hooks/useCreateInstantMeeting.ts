@@ -1,3 +1,5 @@
+import type { Json } from '@/integrations/supabase/types';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,12 +22,12 @@ export function useCreateInstantMeeting() {
         .from('meetings')
         .insert({
           user_id: user.id,
-          title: 'Reuniao Rapida',
+          title: 'Reunião Rapida',
           starts_at: new Date().toISOString(),
           calendar_event_id: crypto.randomUUID(),
           meeting_status: 'lobby',
           organizer: user.email || null,
-          attendees: [] as any,
+          attendees: [] as unknown as Json,
         })
         .select('id')
         .single();
@@ -34,8 +36,8 @@ export function useCreateInstantMeeting() {
 
       queryClient.invalidateQueries({ queryKey: ['meetings'] });
       navigate(`/meetings/${meeting.id}/room`);
-    } catch (err: any) {
-      toast({ title: 'Erro ao criar reuniao', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao criar reunião', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setCreating(false);
     }

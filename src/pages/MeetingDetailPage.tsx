@@ -1,3 +1,6 @@
+import { buildICS, nomeArquivoICS } from '@/lib/ics';
+import type { TablesUpdate } from '@/integrations/supabase/types';
+import { mensagemDeErro } from '@/lib/errors';
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,7 +9,7 @@ import { format, differenceInMinutes } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   ArrowLeft, Clock, Users, Loader2, Plus, CalendarIcon, Video, Link2, Copy,
-  XCircle, CalendarClock,
+  XCircle, CalendarClock, CalendarPlus,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
@@ -35,6 +38,7 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { buildJoinLink } from '@/lib/join-link';
 
 type Meeting = Tables<'meetings'>;
 type Briefing = Tables<'briefings'>;
@@ -83,8 +87,8 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       if (error) throw error;
       queryClient.invalidateQueries({ queryKey: ['meeting', meeting.id] });
       toast({ title: 'Reunião cancelada' });
-    } catch (err: any) {
-      toast({ title: 'Erro ao cancelar', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao cancelar', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setCancelling(false);
     }
@@ -99,7 +103,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       newStart.setHours(hours, minutes, 0, 0);
 
       // Keep same duration
-      const updates: any = { starts_at: newStart.toISOString() };
+      const updates: TablesUpdate<'meetings'> = { starts_at: newStart.toISOString() };
       if (end && duration) {
         const newEnd = new Date(newStart.getTime() + duration * 60_000);
         updates.ends_at = newEnd.toISOString();
@@ -113,8 +117,8 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
       queryClient.invalidateQueries({ queryKey: ['meeting', meeting.id] });
       setRescheduleOpen(false);
       toast({ title: 'Reunião reagendada' });
-    } catch (err: any) {
-      toast({ title: 'Erro ao reagendar', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao reagendar', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setRescheduling(false);
     }
@@ -185,19 +189,70 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
               className="gap-2"
             >
               <Video className="h-4 w-4" />
-              Iniciar Reuniao
+              Iniciar Reunião
             </Button>
             <Button
               variant="outline"
               size="sm"
               onClick={() => {
-                const link = `${window.location.origin}/join/${meeting.id}`;
+                const link = buildJoinLink(meeting.id, meeting.join_token);
+                if (!link) {
+                  toast({
+                    title: 'Link indisponivel',
+                    description: 'Esta reunião ainda não tem token de convite.',
+                    variant: 'destructive',
+                  });
+                  return;
+                }
                 navigator.clipboard.writeText(link);
+                toast({ title: 'Link de convite copiado!' });
               }}
               className="gap-1"
             >
               <Link2 className="h-3.5 w-3.5" />
               Copiar link de convite
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                // Convite .ics: o participante consegue pôr a reunião na
+                // agenda dele sem que a plataforma precise de OAuth de
+                // calendário (auditoria P1 item 13).
+                try {
+                  const ics = buildICS({
+                    uid: meeting.id,
+                    title: meeting.title,
+                    startsAt: meeting.starts_at,
+                    endsAt: meeting.ends_at,
+                    description: meeting.description,
+                    organizer: meeting.organizer,
+                    attendees: Array.isArray(meeting.attendees)
+                      ? (meeting.attendees as string[])
+                      : [],
+                    joinUrl: buildJoinLink(meeting.id, meeting.join_token),
+                  });
+                  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = nomeArquivoICS(meeting.title);
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  toast({
+                    title: 'Não foi possível gerar o convite',
+                    description: mensagemDeErro(err),
+                    variant: 'destructive',
+                  });
+                }
+              }}
+              className="gap-1"
+            >
+              <CalendarPlus className="h-3.5 w-3.5" />
+              Adicionar ao calendário
             </Button>
 
             {/* Reschedule */}
@@ -242,7 +297,7 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
           <div className="flex gap-2 pt-2">
             <Button onClick={() => navigate(`/meetings/${meeting.id}/room`)} className="gap-2">
               <Video className="h-4 w-4" />
-              Entrar na Reuniao
+              Entrar na Reunião
             </Button>
           </div>
         )}
@@ -330,9 +385,9 @@ function BriefingTab({ meeting, briefing }: { meeting: Meeting; briefing: Briefi
       if (data.briefing_id) {
         await sendNotifications(data.briefing_id);
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Generate briefing error:', err);
-      toast({ title: 'Erro ao gerar briefing', description: err.message, variant: 'destructive' });
+      toast({ title: 'Erro ao gerar briefing', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGenerating(false);
     }
@@ -420,7 +475,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
   const doGenerate = async () => {
     setGenerating(true);
     try {
-      const body: Record<string, any> = {
+      const body: Record<string, unknown> = {
         meeting_id: meeting.id,
         use_live_transcript: true,
       };
@@ -435,24 +490,30 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       queryClient.invalidateQueries({ queryKey: ['action_items', meeting.id] });
 
       await sendNotifications(meeting.id);
-    } catch (err: any) {
-      toast({ title: 'Erro ao gerar ata', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao gerar ata', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setGenerating(false);
     }
   };
 
-  // Auto-generate when transcript is available and ata hasn't been generated yet
+  // `doGenerate` é recriado a cada render e fecha sobre estado que muda, mas o
+  // efeito abaixo só deve reagir às CONDIÇÕES de disparo — colocá-lo no array
+  // de dependências re-executaria o efeito a cada render. A referência sempre
+  // aponta para a versão mais recente, então não há closure obsoleta.
+  const doGenerateRef = useRef(doGenerate);
   useEffect(() => {
-    if (
-      hasLiveTranscript &&
-      !meeting.summary_sent &&
-      !summary &&
-      !generating &&
-      !autoTriggered.current
-    ) {
+    doGenerateRef.current = doGenerate;
+  });
+
+  // Gera a ata sozinho quando a transcrição fica disponível e ainda não há
+  // resumo. `autoTriggered` garante uma única execução por montagem — era o
+  // que já impedia a geração duplicada que o estado `generating` obsoleto
+  // poderia causar.
+  useEffect(() => {
+    if (hasLiveTranscript && !meeting.summary_sent && !summary && !autoTriggered.current) {
       autoTriggered.current = true;
-      doGenerate();
+      doGenerateRef.current();
     }
   }, [hasLiveTranscript, meeting.summary_sent, summary]);
 
@@ -549,7 +610,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
     return (
       <div className="flex flex-col items-center gap-4 py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="text-sm text-muted-foreground">Gerando ata automaticamente a partir da transcricao...</p>
+        <p className="text-sm text-muted-foreground">Gerando ata automaticamente a partir da transcrição...</p>
       </div>
     );
   }
@@ -560,10 +621,10 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       {!hasLiveTranscript && !showManualForm && (
         <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border py-10">
           <p className="text-sm text-muted-foreground text-center max-w-sm">
-            A ata sera gerada automaticamente quando houver uma transcricao da reuniao.
+            A ata será gerada automaticamente quando houver uma transcrição da reunião.
           </p>
           <p className="text-xs text-muted-foreground text-center max-w-sm">
-            Inicie uma reuniao ao vivo para gerar a transcricao, ou escreva a ata manualmente.
+            Inicie uma reunião ao vivo para gerar a transcrição, ou escreva a ata manualmente.
           </p>
           <Button variant="outline" size="sm" onClick={() => setShowManualForm(true)}>
             Escrever manualmente
@@ -574,7 +635,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
       {hasLiveTranscript && !generating && (
         <div className="flex flex-col items-center gap-4 rounded-lg border border-dashed border-border py-10">
           <p className="text-sm text-muted-foreground text-center">
-            Transcricao disponivel. A ata sera gerada automaticamente.
+            Transcrição disponível. A ata será gerada automaticamente.
           </p>
           <Button onClick={doGenerate} className="gap-2">
             <Loader2 className="h-4 w-4" />
@@ -591,7 +652,7 @@ function SummaryTab({ meeting, summary }: { meeting: Meeting; summary: Briefing 
               <Textarea
                 value={manualAta}
                 onChange={(e) => setManualAta(e.target.value)}
-                placeholder={"## Resumo\n\nDescreva os pontos discutidos...\n\n## Decisoes\n\n- ...\n\n## Action Items\n\n- [Responsavel] → [Tarefa] → [Prazo]"}
+                placeholder={"## Resumo\n\nDescreva os pontos discutidos...\n\n## Decisoes\n\n- ...\n\n## Action Items\n\n- [Responsável] → [Tarefa] → [Prazo]"}
                 rows={15}
                 className="font-mono text-sm"
               />
@@ -798,9 +859,9 @@ export default function MeetingDetailPage() {
           <TabsTrigger value="briefing">Briefing Pre</TabsTrigger>
           <TabsTrigger value="summary">Ata</TabsTrigger>
           <TabsTrigger value="actions">Actions</TabsTrigger>
-          <TabsTrigger value="transcript">Transcricao</TabsTrigger>
+          <TabsTrigger value="transcript">Transcrição</TabsTrigger>
           <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="recording">Gravacao</TabsTrigger>
+          <TabsTrigger value="recording">Gravação</TabsTrigger>
         </TabsList>
 
         <TabsContent value="briefing" className="mt-4">

@@ -1,14 +1,17 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireCron } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 Deno.serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
+  // Autorização (auditoria P0 item 2): rota sem verify_jwt no gateway.
+  // Aceita o header x-cron-secret (agenda versionada da Fase 2) ou a service
+  // key (pg_cron configurado à mão hoje) — nunca uma requisição anônima.
+  const cron = requireCron(req);
+  if (!cron.ok) return cron.response;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -60,12 +63,12 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({ processed: results.length, results, reminders: reminderResult }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     return new Response(
       JSON.stringify({ error: err.message }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 500, headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   }
 });

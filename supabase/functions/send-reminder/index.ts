@@ -1,15 +1,18 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireCron } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
+
+  // Autorização (auditoria P0 item 2): rota sem verify_jwt no gateway.
+  // Aceita o header x-cron-secret (agenda versionada da Fase 2) ou a service
+  // key (pg_cron configurado à mão hoje) — nunca uma requisição anônima.
+  const cron = requireCron(req);
+  if (!cron.ok) return cron.response;
 
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -21,7 +24,7 @@ serve(async (req) => {
 
     const { data: meetings } = await supabase
       .from("meetings")
-      .select("id, title, starts_at, attendees, organizer, user_id")
+      .select("id, title, starts_at, attendees, organizer, user_id, join_token")
       .eq("meeting_status", "scheduled")
       .gte("starts_at", now.toISOString())
       .lte("starts_at", maxWindow.toISOString());
@@ -29,7 +32,7 @@ serve(async (req) => {
     if (!meetings || meetings.length === 0) {
       return new Response(
         JSON.stringify({ processed: 0 }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -72,7 +75,8 @@ serve(async (req) => {
 
       const minutesUntil = Math.round((meetingStart.getTime() - now.getTime()) / 60000);
       const appUrl = Deno.env.get("APP_URL") || "https://briefbot.app";
-      const joinLink = `${appUrl}/join/${meeting.id}`;
+      // Mesmo token do convite — o lembrete precisa levar um link que funcione.
+      const joinLink = `${appUrl}/join/${meeting.id}?t=${encodeURIComponent(meeting.join_token)}`;
 
       const attendees = Array.isArray(meeting.attendees) ? meeting.attendees : [];
       const recipients = [...attendees];
@@ -122,13 +126,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ processed: meetings.length, reminders_sent: sent }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

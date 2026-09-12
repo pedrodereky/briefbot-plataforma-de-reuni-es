@@ -1,4 +1,7 @@
-import { useState } from 'react';
+import { encontrarConflitos } from '@/lib/ics';
+import type { Json } from '@/integrations/supabase/types';
+import { mensagemDeErro } from '@/lib/errors';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
@@ -19,7 +22,7 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import {
   CalendarIcon, Loader2, Plus, ArrowRight, ArrowLeft, Sparkles,
-  X, Users, FileText, Clock, Target, Check,
+  X, Users, FileText, Clock, Target, Check, AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -57,6 +60,34 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
   const [newContactNames, setNewContactNames] = useState<Record<string, string>>({});
 
   // Contacts for quick selection
+  // Reuniões já agendadas, para avisar sobre choque de horário (auditoria
+  // P1 item 13). Só as futuras importam.
+  const { data: agendadas = [] } = useQuery({
+    queryKey: ['meetings_para_conflito', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('meetings')
+        .select('id, title, starts_at, ends_at')
+        .eq('user_id', user!.id)
+        .neq('meeting_status', 'cancelled')
+        .gte('starts_at', new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
+      return data ?? [];
+    },
+    enabled: !!user && open,
+  });
+
+  const conflitos = useMemo(() => {
+    if (!date) return [];
+    const [h, m] = time.split(':').map(Number);
+    const inicio = new Date(date);
+    inicio.setHours(h, m, 0, 0);
+    const fim = new Date(inicio.getTime() + parseInt(duration) * 60 * 1000);
+    return encontrarConflitos(
+      { id: 'nova', title, starts_at: inicio.toISOString(), ends_at: fim.toISOString() },
+      agendadas,
+    );
+  }, [date, time, duration, title, agendadas]);
+
   const { data: contacts = [] } = useQuery({
     queryKey: ['contacts', user?.id],
     queryFn: async () => {
@@ -103,7 +134,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
   // AI: Generate agenda/objective suggestions from title + type
   const generateWithAI = async () => {
     if (!title.trim()) {
-      toast({ title: 'Preencha o titulo primeiro', variant: 'destructive' });
+      toast({ title: 'Preencha o título primeiro', variant: 'destructive' });
       return;
     }
     setAiLoading(true);
@@ -131,9 +162,9 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
         setAgenda(data.content);
       }
 
-      toast({ title: 'Sugestoes geradas!' });
+      toast({ title: 'Sugestões geradas!' });
     } catch {
-      toast({ title: 'Erro ao gerar sugestoes', variant: 'destructive' });
+      toast({ title: 'Erro ao gerar sugestões', variant: 'destructive' });
     } finally {
       setAiLoading(false);
     }
@@ -163,7 +194,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
           description: fullDescription.trim() || null,
           starts_at: startsAt.toISOString(),
           ends_at: endsAt.toISOString(),
-          attendees: attendeesList as any,
+          attendees: attendeesList as unknown as Json,
           organizer: user.email || null,
           calendar_event_id: crypto.randomUUID(),
           meeting_status: 'scheduled',
@@ -179,7 +210,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
 
       // Auto-save all attendees as contacts (with real names if provided)
       if (attendeesList.length > 0) {
-        const existingEmails = new Set(contacts.map((c: any) => c.email));
+        const existingEmails = new Set(contacts.map((c) => c.email));
         const newEmails = attendeesList.filter((e) => !existingEmails.has(e));
         if (newEmails.length > 0) {
           const newContacts = newEmails.map((email) => ({
@@ -193,7 +224,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
         // Increment meeting_count for existing contacts
         const existingInMeeting = attendeesList.filter((e) => existingEmails.has(e));
         for (const email of existingInMeeting) {
-          const contact = contacts?.find((c: any) => c.email === email);
+          const contact = contacts?.find((c) => c.email === email);
           if (contact) {
             await supabase.from('contacts').update({ meeting_count: (contact.meeting_count || 0) + 1, last_meeting_at: new Date().toISOString() }).eq('id', contact.id);
           }
@@ -210,15 +241,15 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
             },
           });
           if (result?.sent > 0) {
-            toast({ title: `Reuniao criada! ${result.sent} convite(s) enviado(s).` });
+            toast({ title: `Reunião criada! ${result.sent} convite(s) enviado(s).` });
           } else {
-            toast({ title: 'Reuniao criada!', description: 'Configure o Resend nas configuracoes para enviar convites por email.' });
+            toast({ title: 'Reunião criada!', description: 'Configure o Resend nas configurações para enviar convites por email.' });
           }
         } catch {
-          toast({ title: 'Reuniao criada!', description: 'Nao foi possivel enviar convites por email.' });
+          toast({ title: 'Reunião criada!', description: 'Não foi possível enviar convites por email.' });
         }
       } else {
-        toast({ title: 'Reuniao criada!' });
+        toast({ title: 'Reunião criada!' });
       }
 
       // Auto-generate briefing pre-meeting (non-blocking)
@@ -233,8 +264,8 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
       reset();
       onOpenChange?.(false);
       navigate(`/meetings/${meeting.id}`);
-    } catch (err: any) {
-      toast({ title: 'Erro ao criar reuniao', description: err.message, variant: 'destructive' });
+    } catch (err) {
+      toast({ title: 'Erro ao criar reunião', description: mensagemDeErro(err), variant: 'destructive' });
     } finally {
       setSaving(false);
     }
@@ -252,7 +283,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Nova Reuniao</DialogTitle>
+          <DialogTitle>Nova Reunião</DialogTitle>
         </DialogHeader>
 
         {/* Step indicator */}
@@ -280,7 +311,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
         {step === 0 && (
           <div className="space-y-4">
             <div className="space-y-1.5">
-              <Label>Titulo da reuniao *</Label>
+              <Label>Título da reunião *</Label>
               <Input
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -291,7 +322,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
             </div>
 
             <div className="space-y-1.5">
-              <Label>Tipo de reuniao</Label>
+              <Label>Tipo de reunião</Label>
               <Select value={meetingType} onValueChange={setMeetingType}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
@@ -302,7 +333,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                   <SelectItem value="revisao">Revisao / Retrospectiva</SelectItem>
                   <SelectItem value="decisao">Tomada de Decisao</SelectItem>
                   <SelectItem value="apresentacao">Apresentacao / Demo</SelectItem>
-                  <SelectItem value="cliente">Reuniao com Cliente</SelectItem>
+                  <SelectItem value="cliente">Reunião com Cliente</SelectItem>
                   <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
@@ -330,7 +361,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               </div>
 
               <div className="space-y-1.5">
-                <Label>Duracao</Label>
+                <Label>Duração</Label>
                 <Select value={duration} onValueChange={setDuration}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -344,11 +375,32 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                   </SelectContent>
                 </Select>
               </div>
+
+              {conflitos.length > 0 && (
+                <div className="sm:col-span-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                  <div className="text-xs">
+                    <p className="font-medium text-amber-700">
+                      Choque de horário com {conflitos.length === 1 ? 'outra reunião' : `${conflitos.length} reuniões`}
+                    </p>
+                    <ul className="mt-0.5 text-muted-foreground">
+                      {conflitos.map((c) => (
+                        <li key={c.id}>
+                          {c.title} — {format(new Date(c.starts_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                        </li>
+                      ))}
+                    </ul>
+                    <p className="mt-1 text-muted-foreground">
+                      Você ainda pode agendar; este é só um aviso.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex justify-end pt-2">
               <Button onClick={() => setStep(1)} disabled={!canAdvance()} className="gap-1">
-                Proximo <ArrowRight className="h-4 w-4" />
+                Próximo <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -378,7 +430,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               <Input
                 value={objective}
                 onChange={(e) => setObjective(e.target.value)}
-                placeholder="O que queremos alcançar nesta reuniao?"
+                placeholder="O que queremos alcançar nesta reunião?"
               />
             </div>
 
@@ -389,7 +441,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               <Textarea
                 value={agenda}
                 onChange={(e) => setAgenda(e.target.value)}
-                placeholder={"1. Abertura e contexto\n2. Ponto principal\n3. Discussao\n4. Proximos passos"}
+                placeholder={"1. Abertura e contexto\n2. Ponto principal\n3. Discussao\n4. Próximos passos"}
                 rows={5}
               />
             </div>
@@ -399,7 +451,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               <Textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Links, documentos de referencia, preparacao necessaria..."
+                placeholder="Links, documentos de referencia, preparacao necessária..."
                 rows={3}
               />
             </div>
@@ -409,7 +461,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <ArrowLeft className="h-4 w-4" /> Voltar
               </Button>
               <Button onClick={() => setStep(2)} className="gap-1">
-                Proximo <ArrowRight className="h-4 w-4" />
+                Próximo <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </div>
@@ -424,9 +476,9 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <Label className="text-xs text-muted-foreground">Seus contatos</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {contacts
-                    .filter((c: any) => !attendeesList.includes(c.email))
+                    .filter((c) => !attendeesList.includes(c.email))
                     .slice(0, 12)
-                    .map((c: any) => (
+                    .map((c) => (
                       <button
                         key={c.id}
                         onClick={() => setAttendeesList((prev) => [...prev, c.email])}
@@ -461,7 +513,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground">
-                Enter para adicionar. Novos emails serao salvos nos seus contatos automaticamente.
+                Enter para adicionar. Novos emails serão salvos nos seus contatos automaticamente.
               </p>
             </div>
 
@@ -471,12 +523,12 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <Label className="text-xs text-muted-foreground">{attendeesList.length} participante{attendeesList.length !== 1 && 's'}</Label>
                 <div className="space-y-1.5">
                   {attendeesList.map((email) => {
-                    const contact = contacts.find((c: any) => c.email === email);
+                    const contact = contacts.find((c) => c.email === email);
                     const isNew = !contact;
                     return (
                       <div key={email} className="flex items-center gap-2 rounded-md border px-2.5 py-1.5">
                         <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-[9px] font-bold text-primary shrink-0">
-                          {(contact ? (contact as any).name : newContactNames[email] || email)[0].toUpperCase()}
+                          {(contact ? contact.name : newContactNames[email] || email)[0].toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
                           {isNew ? (
@@ -491,7 +543,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium">{(contact as any).name}</span>
+                              <span className="text-sm font-medium">{contact.name}</span>
                               <span className="text-[10px] text-muted-foreground">{email}</span>
                             </div>
                           )}
@@ -503,7 +555,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                     );
                   })}
                 </div>
-                {attendeesList.some((e) => !contacts.find((c: any) => c.email === e)) && (
+                {attendeesList.some((e) => !contacts.find((c) => c.email === e)) && (
                   <p className="text-[10px] text-muted-foreground">
                     Preencha os nomes para salvar como contatos. Na proxima vez, bastara clicar no nome.
                   </p>
@@ -516,7 +568,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
                 <CardContent className="flex flex-col items-center py-8 text-center">
                   <Users className="h-8 w-8 text-muted-foreground mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Nenhum contato ainda. Adicione emails acima — eles serao salvos automaticamente.
+                    Nenhum contato ainda. Adicione emails acima — eles serão salvos automaticamente.
                   </p>
                 </CardContent>
               </Card>
@@ -607,7 +659,7 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               </Button>
               <Button onClick={handleCreate} disabled={saving} className="gap-2 min-w-[160px]">
                 {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Criar Reuniao
+                Criar Reunião
               </Button>
             </div>
           </div>

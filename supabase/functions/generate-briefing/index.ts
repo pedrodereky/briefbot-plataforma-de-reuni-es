@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireMeetingOwner, requireUser } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const DEFAULT_SYSTEM_PROMPT = `Você é um assistente executivo que prepara briefings pré-reunião.
 
@@ -52,9 +50,8 @@ async function callAI(systemPrompt: string, userMessage: string) {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
 
   try {
     const body = await req.json();
@@ -63,13 +60,24 @@ serve(async (req) => {
     if (!meeting_id) {
       return new Response(JSON.stringify({ error: "meeting_id is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Autorização (auditoria P0 item 2). O modo __preview__ não toca em
+    // reunião nenhuma, mas gasta crédito de IA — então exige usuário logado.
+    // Os demais modos exigem a cadeia interna ou o dono da reunião.
+    if (meeting_id === "__preview__") {
+      const usuario = await requireUser(req);
+      if (!usuario.ok) return usuario.response;
+    } else {
+      const autorizacao = await requireMeetingOwner(req, supabase, meeting_id);
+      if (!autorizacao.ok) return autorizacao.response;
+    }
 
     // ── Preview mode: generate suggestions for meeting creation ──
     if (meeting_id === "__preview__" && body.preview_data) {
@@ -104,7 +112,7 @@ REGRA: Use SOMENTE as informacoes fornecidas. Expanda e organize o que foi escri
       if (!apiKey) {
         return new Response(JSON.stringify({ error: "AI not configured" }), {
           status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -130,7 +138,7 @@ REGRA: Use SOMENTE as informacoes fornecidas. Expanda e organize o que foi escri
         await response.text();
         return new Response(JSON.stringify({ error: status === 429 ? "Rate limited, tente novamente" : "AI generation failed" }), {
           status: status === 429 ? 429 : 502,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          headers: { ...corsHeaders(req), "Content-Type": "application/json" },
         });
       }
 
@@ -151,7 +159,7 @@ REGRA: Use SOMENTE as informacoes fornecidas. Expanda e organize o que foi escri
 
       return new Response(
         JSON.stringify({ success: true, preview }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
       );
     }
 
@@ -165,7 +173,7 @@ REGRA: Use SOMENTE as informacoes fornecidas. Expanda e organize o que foi escri
     if (meetingErr || !meeting) {
       return new Response(JSON.stringify({ error: "Meeting not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -210,7 +218,7 @@ ${meeting.description ? `Descrição/Pauta: ${meeting.description}` : "Sem descr
       console.error("Insert briefing error:", insertErr);
       return new Response(JSON.stringify({ error: "Failed to save briefing" }), {
         status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -222,7 +230,7 @@ ${meeting.description ? `Descrição/Pauta: ${meeting.description}` : "Sem descr
 
     return new Response(
       JSON.stringify({ success: true, briefing_id: briefing.id }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
@@ -230,7 +238,7 @@ ${meeting.description ? `Descrição/Pauta: ${meeting.description}` : "Sem descr
     const status = msg === "RATE_LIMITED" ? 429 : msg === "PAYMENT_REQUIRED" ? 402 : 500;
     return new Response(JSON.stringify({ error: msg === "RATE_LIMITED" ? "Rate limited, tente novamente" : msg === "PAYMENT_REQUIRED" ? "Creditos esgotados" : "Internal server error" }), {
       status,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

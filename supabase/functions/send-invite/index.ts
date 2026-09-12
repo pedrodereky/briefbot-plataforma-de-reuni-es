@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireMeetingOwner } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 const sanitizePublicUrl = (value?: string | null) => {
   if (!value) return null;
@@ -19,22 +17,29 @@ const sanitizePublicUrl = (value?: string | null) => {
 };
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
 
   try {
     const { meeting_id, app_url } = await req.json();
     if (!meeting_id) {
       return new Response(JSON.stringify({ error: "meeting_id is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Autorização (auditoria P0 item 2): esta função opera com a service key,
+    // que ignora RLS. Sem esta checagem, qualquer um que soubesse o UUID de
+    // uma reunião agia sobre ela. Aceita a cadeia interna (service key) e o
+    // dono da reunião; qualquer outro recebe 403.
+    const autorizacao = await requireMeetingOwner(req, supabase, meeting_id);
+    if (!autorizacao.ok) return autorizacao.response;
+
 
     const { data: meeting, error: meetingErr } = await supabase
       .from("meetings")
@@ -45,7 +50,7 @@ serve(async (req) => {
     if (meetingErr || !meeting) {
       return new Response(JSON.stringify({ error: "Meeting not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -63,7 +68,7 @@ serve(async (req) => {
     const resendKey = (vaultKey as string | null) || Deno.env.get("RESEND_API_KEY");
     if (!resendKey) {
       return new Response(JSON.stringify({ success: true, sent: 0, reason: "resend_not_configured" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -71,14 +76,14 @@ serve(async (req) => {
     const senderEmail = settings?.sender_email || Deno.env.get("RESEND_SENDER_EMAIL");
     if (!senderEmail) {
       return new Response(JSON.stringify({ success: true, sent: 0, reason: "sender_email_not_configured" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     const attendees = Array.isArray(meeting.attendees) ? meeting.attendees : [];
     if (attendees.length === 0) {
       return new Response(JSON.stringify({ success: true, sent: 0 }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -101,7 +106,9 @@ serve(async (req) => {
       sanitizePublicUrl(req.headers.get("referer")) ||
       sanitizePublicUrl(Deno.env.get("APP_URL")) ||
       "https://briefbot.app";
-    const joinLink = `${appUrl}/join/${meeting.id}`;
+    // O convite precisa carregar o token: sem ele o destinatário não entra
+    // (auditoria P0 item 3).
+    const joinLink = `${appUrl}/join/${meeting.id}?t=${encodeURIComponent(meeting.join_token)}`;
 
     const html = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
@@ -146,13 +153,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, sent }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

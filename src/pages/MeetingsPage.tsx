@@ -153,7 +153,7 @@ export default function MeetingsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Reunioes</h1>
+        <h1 className="text-2xl font-bold">Reuniões</h1>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating} className="gap-1">
             <Zap className="h-4 w-4" /> Iniciar Agora
@@ -161,7 +161,7 @@ export default function MeetingsPage() {
           <CreateMeetingDialog
             open={createOpen}
             onOpenChange={setCreateOpen}
-            trigger={<Button size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Reuniao</Button>}
+            trigger={<Button size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Reunião</Button>}
           />
         </div>
       </div>
@@ -215,8 +215,8 @@ export default function MeetingsPage() {
           <CalendarOff className="h-12 w-12 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
             {search || period !== 'all' || status !== 'all'
-              ? 'Nenhuma reuniao encontrada com esse filtro.'
-              : 'Nenhuma reuniao encontrada. Crie uma nova reuniao.'}
+              ? 'Nenhuma reunião encontrada com esse filtro.'
+              : 'Nenhuma reunião encontrada. Crie uma nova reunião.'}
           </p>
         </div>
       ) : (

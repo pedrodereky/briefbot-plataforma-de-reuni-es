@@ -1,3 +1,4 @@
+import type { Json } from '@/integrations/supabase/types';
 import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +12,7 @@ interface LobbyViewProps {
     id: string;
     title: string;
     starts_at: string;
-    attendees: any;
+    attendees: Json;
     organizer: string | null;
     description: string | null;
   };
@@ -133,7 +134,7 @@ export function LobbyView({
                 Conectando...
               </>
             ) : (
-              'Iniciar Reuniao'
+              'Iniciar Reunião'
             )}
           </Button>
         ) : (
@@ -175,7 +176,7 @@ export function LobbyView({
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                Briefing Pre-Reuniao
+                Briefing Pre-Reunião
               </CardTitle>
             </CardHeader>
             <CardContent>
