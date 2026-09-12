@@ -1,10 +1,3 @@
-// NOTA: arquivo normalmente gerado por `supabase gen types`. As colunas
-// join_token/join_token_expires_at, as colunas recording_* e a RPC
-// verify_join_token foram acrescentadas à mão junto das migrations
-// 20260911130000 e 20260911140000, porque esta sessão não tem credenciais
-// para regerar. Rode `supabase gen types typescript --linked` e
-// substitua este arquivo assim que possível.
-
 export type Json =
   | string
   | number
@@ -371,15 +364,6 @@ export type Database = {
       set_secret_validation: {
         Args: { _service: string; _status: string; _user_id: string }
         Returns: undefined
-      }
-      verify_join_token: {
-        Args: { _meeting_id: string; _token: string }
-        Returns: {
-          meeting_id: string
-          user_id: string
-          title: string
-          meeting_status: string
-        }[]
       }
       store_user_secret: {
         Args: { _service: string; _user_id: string; _value: string }

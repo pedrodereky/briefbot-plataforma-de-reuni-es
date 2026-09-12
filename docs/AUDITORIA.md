@@ -291,9 +291,10 @@ registrado como pendência em `supabase/migrations/README.md`.
   deploy para o controle valer; até lá cada requisição registra aviso no log.
 
 - **`src/integrations/supabase/types.ts` foi editado à mão** para incluir
-  `join_token` e `verify_join_token`. O arquivo é gerado e esta sessão não tem
-  credenciais para regerá-lo — rode `supabase gen types typescript --linked` e
-  substitua.
+  `join_token` e `verify_join_token`, por não haver credenciais para regerá-lo
+  nesta sessão. **Resolvido depois:** a Lovable regenerou o arquivo a partir do
+  banco já migrado, e o merge da `main` trouxe a versão do gerador — as edições
+  manuais foram removidas.
 
 ### Fase 2 — Fechar os fluxos truncados ✅ CONCLUÍDA
 
@@ -422,8 +423,8 @@ passos de operação que dependem de acesso ao ambiente:
    privilégio das funções `SECURITY DEFINER` (item 0): enquanto ela não for
    aplicada, as chaves do Vault de qualquer usuário seguem legíveis por
    requisição anônima.
-2. **Reconciliar o baseline** com `supabase db pull` e regerar
-   `src/integrations/supabase/types.ts`, que foi editado à mão.
+2. **Reconciliar o baseline** com `supabase db pull`. Os tipos gerados já foram
+   atualizados pela própria Lovable a partir do banco migrado.
 3. **Configurar as variáveis**: `ALLOWED_ORIGINS`, `CRON_SECRET`,
    `RECORDING_S3_*` e, opcionalmente, `VITE_SENTRY_DSN`.
 4. **Popular `public.app_config`** para ativar o cron versionado.
