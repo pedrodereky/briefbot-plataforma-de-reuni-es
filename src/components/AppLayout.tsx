@@ -1,17 +1,21 @@
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
-import { TopBar } from './TopBar';
+import { MobileNavProvider } from './MobileNav';
+import { MobileTabBar } from './MobileTabBar';
 
 export function AppLayout() {
   return (
-    <div className="flex min-h-screen w-full bg-background">
-      <AppSidebar />
-      <div className="flex flex-1 flex-col min-w-0">
-        <TopBar />
-        <main className="flex-1 overflow-auto p-6 lg:p-8">
+    <MobileNavProvider>
+      <div className="flex min-h-screen w-full bg-background">
+        <AppSidebar />
+        {/* Sem padding: cada página abre com o próprio PageHeader, que vai de
+            ponta a ponta e fecha com uma linha. O respiro entra depois, no
+            PageBody. O pb no celular é o espaço da barra de abas, que é fixa. */}
+        <main className="flex min-w-0 flex-1 flex-col overflow-auto pb-[calc(64px+env(safe-area-inset-bottom))] lg:pb-0">
           <Outlet />
         </main>
+        <MobileTabBar />
       </div>
-    </div>
+    </MobileNavProvider>
   );
 }

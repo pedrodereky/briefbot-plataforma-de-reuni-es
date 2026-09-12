@@ -150,7 +150,7 @@ export function VideoGrid() {
     );
 
     return (
-      <div className="flex-1 flex flex-col gap-2 p-2">
+      <div className="flex min-h-0 flex-1 flex-col gap-2 p-2">
         {/* Main area */}
         <div className="flex-1 rounded-xl overflow-hidden">
           {hasScreenShare && !pinnedParticipant ? (
@@ -196,7 +196,7 @@ export function VideoGrid() {
   };
 
   return (
-    <div className={cn('flex-1 grid gap-2 p-2 auto-rows-fr', gridClass())}>
+    <div className={cn('grid min-h-0 flex-1 gap-2 p-2 auto-rows-fr', gridClass())}>
       {participants.map((p) => (
         <ParticipantTile
           key={p.identity}

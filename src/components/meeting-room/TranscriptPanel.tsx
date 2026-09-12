@@ -2,17 +2,20 @@ import { useEffect, useRef } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText } from 'lucide-react';
 import { type TranscriptEntry } from '@/hooks/useRealtimeTranscripts';
+import { PainelDaSala } from './PainelDaSala';
 
 interface TranscriptPanelProps {
   transcripts: TranscriptEntry[];
   interimText?: string;
   interimSpeaker?: string;
+  onFechar?: () => void;
 }
 
 export function TranscriptPanel({
   transcripts,
   interimText,
   interimSpeaker,
+  onFechar,
 }: TranscriptPanelProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -21,12 +24,7 @@ export function TranscriptPanel({
   }, [transcripts, interimText]);
 
   return (
-    <div className="w-[320px] border-l bg-card flex flex-col h-full">
-      <div className="p-3 border-b flex items-center gap-2">
-        <FileText className="w-4 h-4" />
-        <span className="text-sm font-medium">Transcrição ao Vivo</span>
-      </div>
-
+    <PainelDaSala titulo="Transcrição ao vivo" icone={FileText} onFechar={onFechar}>
       <ScrollArea className="flex-1 p-3">
         <div className="space-y-3">
           {transcripts.length === 0 && !interimText && (
@@ -57,6 +55,6 @@ export function TranscriptPanel({
           <div ref={bottomRef} />
         </div>
       </ScrollArea>
-    </div>
+    </PainelDaSala>
   );
 }
