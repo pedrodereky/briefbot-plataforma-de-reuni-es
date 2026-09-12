@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/contexts/AuthProvider";
+import { ThemeProvider } from "@/contexts/ThemeProvider";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AppLayout } from "@/components/AppLayout";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -41,59 +42,61 @@ const CarregandoRota = () => (
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AuthProvider>
-            <ScrollToTop />
-            <AppHooks />
-            <Suspense fallback={<CarregandoRota />}>
-              <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              {/* Onboarding wizard (full-screen, no sidebar) */}
-              <Route
-                path="/onboarding"
-                element={
-                  <ProtectedRoute>
-                    <OnboardingPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Full-screen meeting room (no sidebar/topbar) */}
-              <Route
-                path="/meetings/:id/room"
-                element={
-                  <ProtectedRoute>
-                    <MeetingRoomPage />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Public guest join page */}
-              <Route path="/join/:id" element={<JoinMeetingPage />} />
-              <Route
-                element={
-                  <ProtectedRoute>
-                    <AppLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route path="/" element={<DashboardPage />} />
-                <Route path="/dashboard" element={<DashboardPage />} />
-                <Route path="/calendar" element={<CalendarPage />} />
-                <Route path="/meetings" element={<MeetingsPage />} />
-                <Route path="/meetings/:id" element={<MeetingDetailPage />} />
-                <Route path="/action-items" element={<ActionItemsPage />} />
-                <Route path="/contacts" element={<ContactsPage />} />
-                <Route path="/recordings" element={<RecordingsPage />} />
-                <Route path="/settings" element={<SettingsPage />} />
-              </Route>
-              <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-          </AuthProvider>
-        </BrowserRouter>
-      </TooltipProvider>
+      <ThemeProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <AuthProvider>
+              <ScrollToTop />
+              <AppHooks />
+              <Suspense fallback={<CarregandoRota />}>
+                <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                {/* Onboarding wizard (full-screen, no sidebar) */}
+                <Route
+                  path="/onboarding"
+                  element={
+                    <ProtectedRoute>
+                      <OnboardingPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Full-screen meeting room (no sidebar/topbar) */}
+                <Route
+                  path="/meetings/:id/room"
+                  element={
+                    <ProtectedRoute>
+                      <MeetingRoomPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Public guest join page */}
+                <Route path="/join/:id" element={<JoinMeetingPage />} />
+                <Route
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout />
+                    </ProtectedRoute>
+                  }
+                >
+                  <Route path="/" element={<DashboardPage />} />
+                  <Route path="/dashboard" element={<DashboardPage />} />
+                  <Route path="/calendar" element={<CalendarPage />} />
+                  <Route path="/meetings" element={<MeetingsPage />} />
+                  <Route path="/meetings/:id" element={<MeetingDetailPage />} />
+                  <Route path="/action-items" element={<ActionItemsPage />} />
+                  <Route path="/contacts" element={<ContactsPage />} />
+                  <Route path="/recordings" element={<RecordingsPage />} />
+                  <Route path="/settings" element={<SettingsPage />} />
+                </Route>
+                <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </AuthProvider>
+          </BrowserRouter>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>
 );

@@ -3,6 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { supabase } from '@/integrations/supabase/client';
+import { useTemaTravado } from '@/contexts/ThemeProvider';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { useTranscription } from '@/hooks/useTranscription';
 import { useRealtimeTranscripts } from '@/hooks/useRealtimeTranscripts';
@@ -17,6 +18,10 @@ import { Loader2, Users, ArrowLeft } from 'lucide-react';
 import { readJoinToken } from '@/lib/join-link';
 
 export default function JoinMeetingPage() {
+  // Vídeo pede fundo escuro ao redor, como Meet e Zoom fazem: esta é a
+  // única rota que ignora a preferência de tema do usuário.
+  useTemaTravado('escuro');
+
   const { id } = useParams<{ id: string }>();
   const { search } = useLocation();
   // O link de convite carrega o segredo da reunião; sem ele o servidor recusa
@@ -178,7 +183,7 @@ export default function JoinMeetingPage() {
     >
       <RoomAudioRenderer />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <VideoGrid />
 
         {showTranscript && (
@@ -186,6 +191,7 @@ export default function JoinMeetingPage() {
             transcripts={transcripts}
             interimText={interimText}
             interimSpeaker={connection.participant_name}
+            onFechar={() => setShowTranscript(false)}
           />
         )}
       </div>

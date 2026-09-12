@@ -1,17 +1,52 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Bot, Loader2, Mic, Video, Users, MessageSquare, Brain, Calendar } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 
-function FloatingIcon({ icon: Icon, className }: { icon: React.ElementType; className: string }) {
+/** Balão de fala com as linhas do briefing dentro. */
+function MarcaBriefBot({ className }: { className?: string }) {
   return (
-    <div className={`absolute opacity-[0.07] text-primary ${className}`}>
-      <Icon className="w-full h-full" strokeWidth={1.2} />
+    <svg
+      viewBox="0 0 24 24"
+      className={className}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 5h16v11H8l-4 4z" />
+      <path d="M8 9h8" />
+      <path d="M8 12.5h5" />
+    </svg>
+  );
+}
+
+function LinhaDoCopiloto({
+  hora,
+  titulo,
+  detalhe,
+  destaque,
+}: {
+  hora: string;
+  titulo: string;
+  detalhe: string;
+  destaque?: boolean;
+}) {
+  return (
+    <div className="flex gap-3 bg-card px-4 py-3.5">
+      <span className="tabular min-w-[38px] shrink-0 font-mono text-[11px] text-faint">{hora}</span>
+      <div className="flex flex-col gap-1">
+        <span className={destaque ? 'text-[13px] leading-snug text-primary' : 'text-[13px] leading-snug text-foreground'}>
+          {titulo}
+        </span>
+        <span className="text-xs text-muted-foreground">{detalhe}</span>
+      </div>
     </div>
   );
 }
@@ -53,7 +88,10 @@ export default function LoginPage() {
         if (error) {
           toast({ title: 'Erro ao criar conta', description: error, variant: 'destructive' });
         } else {
-          toast({ title: 'Conta criada!', description: 'Verifique seu email para confirmar, ou entre diretamente.' });
+          toast({
+            title: 'Conta criada!',
+            description: 'Verifique seu email para confirmar, ou entre diretamente.',
+          });
           setMode('login');
         }
       }
@@ -62,112 +100,143 @@ export default function LoginPage() {
     }
   };
 
+  const entrando = mode === 'login';
+
   return (
-    <div className="relative flex min-h-screen items-center justify-center bg-background p-4 overflow-hidden">
-      {/* Animated gradient orbs */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-[-20%] left-[-10%] w-[600px] h-[600px] rounded-full bg-primary/[0.06] blur-3xl animate-[drift-1_18s_ease-in-out_infinite]" />
-        <div className="absolute bottom-[-20%] right-[-10%] w-[500px] h-[500px] rounded-full bg-info/[0.06] blur-3xl animate-[drift-2_22s_ease-in-out_infinite]" />
-        <div className="absolute top-[40%] left-[60%] w-[350px] h-[350px] rounded-full bg-success/[0.05] blur-3xl animate-[drift-3_15s_ease-in-out_infinite]" />
-      </div>
+    /* Formulário à esquerda, prova à direita: quem entra já viu o que a
+       ferramenta entrega antes de digitar a senha. No celular a prova desce
+       para baixo do formulário, e some de vez nas telas mais baixas. */
+    <div className="flex min-h-screen w-full flex-col bg-background lg:flex-row">
+      <div className="flex w-full flex-col justify-between gap-10 border-border bg-card px-6 py-10 sm:px-12 lg:w-[560px] lg:shrink-0 lg:border-r lg:px-16 lg:py-11">
+        <div className="flex items-center gap-2.5">
+          <MarcaBriefBot className="h-[18px] w-[18px] text-primary" />
+          <span className="text-[15px] font-semibold tracking-[-0.01em] text-foreground">BriefBot</span>
+        </div>
 
-      {/* Floating themed icons */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <FloatingIcon icon={Mic} className="w-16 h-16 top-[8%] left-[8%] animate-[float-1_12s_ease-in-out_infinite]" />
-        <FloatingIcon icon={Video} className="w-20 h-20 top-[12%] right-[12%] animate-[float-2_14s_ease-in-out_infinite]" />
-        <FloatingIcon icon={Users} className="w-14 h-14 bottom-[18%] left-[15%] animate-[float-3_10s_ease-in-out_infinite]" />
-        <FloatingIcon icon={MessageSquare} className="w-12 h-12 top-[35%] left-[5%] animate-[float-2_16s_ease-in-out_infinite]" />
-        <FloatingIcon icon={Brain} className="w-18 h-18 bottom-[12%] right-[8%] animate-[float-1_13s_ease-in-out_infinite]" />
-        <FloatingIcon icon={Calendar} className="w-14 h-14 top-[60%] right-[5%] animate-[float-3_11s_ease-in-out_infinite]" />
-        <FloatingIcon icon={Bot} className="w-10 h-10 bottom-[35%] left-[50%] animate-[float-2_15s_ease-in-out_infinite]" />
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-[0.03]"
-        style={{
-          backgroundImage: `linear-gradient(hsl(var(--primary)) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--primary)) 1px, transparent 1px)`,
-          backgroundSize: '60px 60px',
-        }}
-      />
-
-      <div className="relative z-10 w-full max-w-sm space-y-6">
-        {/* Logo area */}
-        <div className="flex flex-col items-center gap-3">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-elevated">
-            <Bot className="h-7 w-7 text-primary-foreground" />
+        <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-2">
+            <h1 className="text-[27px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
+              {entrando ? 'Entrar' : 'Criar conta'}
+            </h1>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Suas reuniões, com briefing antes e ata depois.
+            </p>
           </div>
-          <h1 className="text-3xl font-bold text-foreground">BriefBot</h1>
+
+          <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
+            {!entrando && (
+              <div className="flex flex-col gap-1.5">
+                <Label htmlFor="name" className="text-xs text-foreground">
+                  Nome
+                </Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome"
+                  className="h-11"
+                />
+              </div>
+            )}
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="email" className="text-xs text-foreground">
+                E-mail de trabalho
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="voce@empresa.com.br"
+                required
+                className="h-11"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="password" className="text-xs text-foreground">
+                Senha
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                autoComplete={entrando ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 6 caracteres"
+                minLength={6}
+                required
+                className="h-11"
+              />
+            </div>
+
+            <Button type="submit" className="mt-1 h-11 w-full font-semibold" disabled={submitting}>
+              {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {entrando ? 'Entrar' : 'Criar conta'}
+            </Button>
+          </form>
+
           <p className="text-sm text-muted-foreground">
-            {mode === 'login' ? 'Entre na sua conta' : 'Crie sua conta'}
+            {entrando ? 'Não tem conta? ' : 'Já tem conta? '}
+            <button
+              type="button"
+              onClick={() => setMode(entrando ? 'register' : 'login')}
+              className="font-medium text-primary hover:underline"
+            >
+              {entrando ? 'Criar uma agora' : 'Entrar'}
+            </button>
           </p>
         </div>
 
-        <Card className="shadow-elevated backdrop-blur-sm bg-card/90">
-          <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {mode === 'register' && (
-                <div className="space-y-1.5">
-                  <Label htmlFor="name">Nome</Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Seu nome"
-                    className="h-11"
-                  />
-                </div>
-              )}
-              <div className="space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="você@empresa.com"
-                  required
-                  className="h-11"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Mínimo 6 caracteres"
-                  minLength={6}
-                  required
-                  className="h-11"
-                />
-              </div>
-              <Button type="submit" className="w-full h-11 rounded-xl font-semibold" size="lg" disabled={submitting}>
-                {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {mode === 'login' ? 'Entrar' : 'Criar conta'}
-              </Button>
-            </form>
+        <p className="text-xs text-faint">
+          Ao entrar você concorda com os termos e a política de privacidade.
+        </p>
+      </div>
 
-            <div className="mt-5 text-center text-sm">
-              {mode === 'login' ? (
-                <p className="text-muted-foreground">
-                  Não tem conta?{' '}
-                  <button onClick={() => setMode('register')} className="font-medium text-primary hover:underline">
-                    Criar conta
-                  </button>
-                </p>
-              ) : (
-                <p className="text-muted-foreground">
-                  Ja tem conta?{' '}
-                  <button onClick={() => setMode('login')} className="font-medium text-primary hover:underline">
-                    Entrar
-                  </button>
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+      <div className="hidden flex-1 flex-col justify-center gap-6 px-16 py-12 lg:flex">
+        <div className="flex items-center gap-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
+          <span className="font-mono text-[11.5px] uppercase tracking-[0.06em] text-primary">
+            Copiloto
+          </span>
+        </div>
+
+        <p className="max-w-[480px] text-[22px] font-medium leading-snug tracking-[-0.015em] text-foreground">
+          A reunião termina e a ata já está escrita, com quem ficou responsável pelo quê.
+        </p>
+
+        <div className="max-w-[520px] divide-y divide-border overflow-hidden rounded-lg border border-border">
+          <LinhaDoCopiloto
+            hora="16:05"
+            titulo="Reunião encerrada · Retrospectiva de agosto"
+            detalhe="62 min transcritos"
+          />
+          <LinhaDoCopiloto
+            destaque
+            hora="16:07"
+            titulo="Ata gerada · 3 decisões, 6 action items"
+            detalhe="enviada a 7 participantes"
+          />
+          <LinhaDoCopiloto
+            destaque
+            hora="16:07"
+            titulo="2 pendências continuam sem dono"
+            detalhe="sinalizadas no topo da ata"
+          />
+        </div>
+
+        <div className="mt-1 flex gap-8">
+          <div className="flex flex-col gap-0.5">
+            <span className="tabular font-mono text-[19px] font-medium text-foreground">8 min</span>
+            <span className="text-xs text-muted-foreground">economizados por reunião</span>
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="tabular font-mono text-[19px] font-medium text-foreground">pt-BR</span>
+            <span className="text-xs text-muted-foreground">transcrição nativa</span>
+          </div>
+        </div>
       </div>
     </div>
   );

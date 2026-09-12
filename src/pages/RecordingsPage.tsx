@@ -1,3 +1,4 @@
+import { PageHeader, PageBody } from '@/components/PageHeader';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
@@ -34,21 +35,27 @@ export default function RecordingsPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Gravações</h1>
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-lg" />
-        ))}
-      </div>
+      <>
+        <PageHeader titulo="Gravações" />
+        <PageBody className="space-y-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-24 rounded-lg" />
+          ))}
+        </PageBody>
+      </>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Gravações</h1>
-      <p className="text-sm text-muted-foreground">
-        Todas as reuniões gravadas ficam disponíveis aqui para assistir novamente.
-      </p>
+    <>
+      <PageHeader
+        titulo="Gravações"
+        resumo={`${recordings.length} ${recordings.length === 1 ? 'gravação' : 'gravações'}`}
+      />
+      <PageBody className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Todas as reuniões gravadas ficam disponíveis aqui para assistir novamente.
+        </p>
 
       {recordings.length === 0 ? (
         <Card>
@@ -102,6 +109,7 @@ export default function RecordingsPage() {
           })}
         </div>
       )}
-    </div>
+      </PageBody>
+    </>
   );
 }

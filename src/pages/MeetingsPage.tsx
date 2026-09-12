@@ -1,13 +1,15 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { Search, CalendarOff, ChevronLeft, ChevronRight, Eye, Zap, Plus } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Search, SearchX, CalendarOff, ChevronLeft, ChevronRight, Eye, Zap, Plus } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useToast } from '@/hooks/use-toast';
 import { useCreateInstantMeeting } from '@/hooks/useCreateInstantMeeting';
 import { CreateMeetingDialog } from '@/components/CreateMeetingDialog';
+import { PageHeader, PageBody } from '@/components/PageHeader';
+import { EmptyState } from '@/components/states/EmptyState';
+import { ListSkeleton } from '@/components/states/ListSkeleton';
 import { Tables } from '@/integrations/supabase/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -150,24 +152,29 @@ export default function MeetingsPage() {
   const updatePeriod = (v: Period) => { setPeriod(v); setPage(0); };
   const updateStatus = (v: Status) => { setStatus(v); setPage(0); };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Reuniões</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating} className="gap-1">
-            <Zap className="h-4 w-4" /> Iniciar Agora
-          </Button>
-          <CreateMeetingDialog
-            open={createOpen}
-            onOpenChange={setCreateOpen}
-            trigger={<Button size="sm" className="gap-1"><Plus className="h-4 w-4" /> Nova Reunião</Button>}
-          />
-        </div>
-      </div>
+  const comFiltro = Boolean(search) || period !== 'all' || status !== 'all';
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
+  return (
+    <>
+      <PageHeader
+        titulo="Reuniões"
+        resumo={isLoading ? undefined : `${total} ${total === 1 ? 'reunião' : 'reuniões'}`}
+        acoes={
+          <>
+            <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating} className="gap-1.5">
+              <Zap className="h-4 w-4" /> Iniciar agora
+            </Button>
+            <CreateMeetingDialog
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              trigger={<Button size="sm" className="gap-1.5"><Plus className="h-4 w-4" /> Nova reunião</Button>}
+            />
+          </>
+        }
+      />
+
+      {/* Barra de filtros: linha própria, encostada no cabeçalho. */}
+      <div className="flex flex-wrap items-center gap-3 border-b border-border px-6 py-3 lg:px-7">
         <div className="relative flex-1 min-w-[200px] max-w-sm">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -203,25 +210,47 @@ export default function MeetingsPage() {
 
       </div>
 
-      {/* Table or Empty State */}
       {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Skeleton key={i} className="h-14 rounded-lg" />
-          ))}
-        </div>
+        <PageBody>
+          <ListSkeleton linhas={5} />
+        </PageBody>
+      ) : meetings.length === 0 && comFiltro ? (
+        /* Busca sem resultado não é conta vazia: a saída aqui é afrouxar o
+           filtro, não criar reunião. */
+        <EmptyState
+          icone={SearchX}
+          titulo={search ? `Nada encontrado para “${search}”` : 'Nenhuma reunião nesse recorte'}
+          descricao="Nenhuma reunião bate com os filtros aplicados. Vale tentar um período maior ou tirar o filtro de status."
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              updateSearch('');
+              updatePeriod('all');
+              updateStatus('all');
+            }}
+          >
+            Limpar filtros
+          </Button>
+        </EmptyState>
       ) : meetings.length === 0 ? (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-border py-16">
-          <CalendarOff className="h-12 w-12 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">
-            {search || period !== 'all' || status !== 'all'
-              ? 'Nenhuma reunião encontrada com esse filtro.'
-              : 'Nenhuma reunião encontrada. Crie uma nova reunião.'}
-          </p>
-        </div>
+        <EmptyState
+          icone={CalendarOff}
+          titulo="Nenhuma reunião ainda"
+          descricao="Agende a primeira ou inicie uma agora. O briefing sai antes e a ata depois, sem você precisar fazer nada durante."
+          rodape="A ata chega por e-mail aos participantes assim que a reunião termina."
+        >
+          <div className="flex flex-wrap justify-center gap-2">
+            <Button size="sm" onClick={() => setCreateOpen(true)}>Criar reunião</Button>
+            <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating}>
+              Reunião rápida
+            </Button>
+          </div>
+        </EmptyState>
       ) : (
-        <>
-          <div className="rounded-lg border">
+        <PageBody className="space-y-6">
+          <div className="overflow-hidden rounded-lg border">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -258,27 +287,27 @@ export default function MeetingsPage() {
                           </TableCell>
                           <TableCell>
                             {m.meeting_status === 'live' ? (
-                              <Badge className="bg-red-500/15 text-red-600 border-red-500/30 text-xs animate-pulse">Ao vivo</Badge>
+                              <Badge className="bg-live/15 text-live border-live/30 text-xs animate-pulse">Ao vivo</Badge>
                             ) : m.meeting_status === 'ended' ? (
                               <Badge variant="secondary" className="text-xs">Encerrada</Badge>
                             ) : m.meeting_status === 'lobby' ? (
-                              <Badge className="bg-blue-500/15 text-blue-600 border-blue-500/30 text-xs">Lobby</Badge>
+                              <Badge className="bg-info/15 text-info border-info/30 text-xs">Lobby</Badge>
                             ) : (
                               <Badge variant="outline" className="text-xs">Agendada</Badge>
                             )}
                           </TableCell>
                           <TableCell>
                             {m.briefing_sent ? (
-                              <Badge className="bg-green-500/15 text-green-600 border-green-500/30 text-xs hover:bg-green-500/20">Enviado</Badge>
+                              <Badge className="bg-success/15 text-success border-success/30 text-xs hover:bg-green-500/20">Enviado</Badge>
                             ) : (
-                              <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-500/30 text-xs hover:bg-yellow-500/20">Pendente</Badge>
+                              <Badge className="bg-warning/15 text-warning border-warning/30 text-xs hover:bg-yellow-500/20">Pendente</Badge>
                             )}
                           </TableCell>
                           <TableCell>
                             {m.summary_sent ? (
-                              <Badge className="bg-green-500/15 text-green-600 border-green-500/30 text-xs hover:bg-green-500/20">Gerada</Badge>
+                              <Badge className="bg-success/15 text-success border-success/30 text-xs hover:bg-green-500/20">Gerada</Badge>
                             ) : (
-                              <Badge className="bg-orange-500/15 text-orange-600 border-orange-500/30 text-xs hover:bg-orange-500/20">Pendente</Badge>
+                              <Badge className="bg-warning/15 text-warning border-warning/30 text-xs hover:bg-orange-500/20">Pendente</Badge>
                             )}
                           </TableCell>
                           <TableCell>
@@ -309,8 +338,8 @@ export default function MeetingsPage() {
               </div>
             </div>
           )}
-        </>
+        </PageBody>
       )}
-    </div>
+    </>
   );
 }

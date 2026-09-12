@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
 import { Tables } from '@/integrations/supabase/types';
+import { useOpenActionItems } from '@/hooks/useOpenActionItems';
 
 type Meeting = Tables<'meetings'>;
 
@@ -23,19 +24,8 @@ export function useDashboardData() {
     refetchInterval: 30_000,
   });
 
-  const actionItemsQuery = useQuery({
-    queryKey: ['action_items_open', user?.id],
-    queryFn: async () => {
-      const { count, error } = await supabase
-        .from('action_items')
-        .select('*', { count: 'exact', head: true })
-        .eq('done', false);
-      if (error) throw error;
-      return count ?? 0;
-    },
-    enabled: !!user,
-    refetchInterval: 30_000,
-  });
+  // Mesma consulta do selo no menu lateral, compartilhada pela chave de cache.
+  const actionItemsQuery = useOpenActionItems();
 
   const meetings = meetingsQuery.data ?? [];
   const now = new Date();

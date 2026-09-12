@@ -6,15 +6,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 
+// Cores para distinguir quem falou. Não são semânticas — a cor não quer dizer
+// nada, só separa uma pessoa da outra —, por isso ficam fora dos tokens. O que
+// muda por tema é o tom do texto: o -700 desaparece sobre fundo escuro, o -300
+// desaparece sobre fundo claro.
 const SPEAKER_COLORS = [
-  'bg-blue-500/15 text-blue-700',
-  'bg-green-500/15 text-green-700',
-  'bg-purple-500/15 text-purple-700',
-  'bg-orange-500/15 text-orange-700',
-  'bg-pink-500/15 text-pink-700',
-  'bg-cyan-500/15 text-cyan-700',
-  'bg-amber-500/15 text-amber-700',
-  'bg-red-500/15 text-red-700',
+  'bg-blue-500/15 text-blue-700 dark:text-blue-300',
+  'bg-green-500/15 text-green-700 dark:text-green-300',
+  'bg-purple-500/15 text-purple-700 dark:text-purple-300',
+  'bg-orange-500/15 text-orange-700 dark:text-orange-300',
+  'bg-pink-500/15 text-pink-700 dark:text-pink-300',
+  'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300',
+  'bg-amber-500/15 text-amber-700 dark:text-amber-300',
+  'bg-red-500/15 text-red-700 dark:text-red-300',
 ];
 
 export function TranscriptTab({ meetingId }: { meetingId: string }) {
@@ -48,7 +52,7 @@ export function TranscriptTab({ meetingId }: { meetingId: string }) {
     const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
     const parts = text.split(regex);
     return parts.map((part, i) =>
-      regex.test(part) ? <mark key={i} className="bg-yellow-200 rounded px-0.5">{part}</mark> : part
+      regex.test(part) ? <mark key={i} className="rounded bg-yellow-200 px-0.5 text-yellow-950 dark:bg-yellow-500/30 dark:text-yellow-100">{part}</mark> : part
     );
   };
 

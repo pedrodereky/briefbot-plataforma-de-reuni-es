@@ -12,7 +12,10 @@ import { test, expect } from '@playwright/test';
 test.describe('rotas públicas', () => {
   test('a tela de login monta e mostra o formulário', async ({ page }) => {
     await page.goto('/login');
-    await expect(page.getByRole('textbox', { name: /voce@empresa|email/i }).first()).toBeVisible();
+    // `e-?mail` cobre tanto "Email" quanto "E-mail de trabalho": o rótulo é
+    // texto de produto e muda; o que o teste garante é que existe um campo.
+    await expect(page.getByRole('textbox', { name: /e-?mail/i }).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: /entrar/i }).first()).toBeVisible();
   });
 
   test('rota inexistente cai no 404, não em tela branca', async ({ page }) => {
