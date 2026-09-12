@@ -21,8 +21,14 @@ SOCKET_DIR="/tmp"
 for d in /usr/lib/postgresql/*/bin; do [ -d "$d" ] && export PATH="$d:$PATH"; done
 command -v initdb >/dev/null || { echo "ERRO: PostgreSQL não encontrado no PATH"; exit 1; }
 
+# O superusuário do cluster é quem executa o initdb — não existe um "postgres"
+# universal. Como root não se pode rodar initdb, o script troca para o usuário
+# `postgres`; em qualquer outro caso (o runner do CI, por exemplo) o cluster
+# nasce com o usuário corrente como superusuário. Fixar `-U postgres` fazia o
+# script funcionar só na máquina de quem o escreveu.
 RUN_AS=""
 if [ "$(id -u)" = "0" ]; then RUN_AS="postgres"; fi
+SUPERUSER="${RUN_AS:-$(id -un)}"
 
 run() {
   if [ -n "$RUN_AS" ]; then su "$RUN_AS" -c "PATH=$PATH $1"; else bash -c "$1"; fi
@@ -41,7 +47,10 @@ echo "▸ iniciando PostgreSQL efêmero na porta $PORT"
 run "initdb -D $PGDATA_DIR -A trust" >/dev/null
 run "pg_ctl -D $PGDATA_DIR -l $PGDATA_DIR/log -o '-k $SOCKET_DIR -p $PORT' -w start" >/dev/null
 
-PSQL="psql -h $SOCKET_DIR -p $PORT -U postgres -v ON_ERROR_STOP=1 -q"
+# `-d postgres` é o banco de manutenção: sem ele o psql tentaria conectar num
+# banco com o nome do usuário, que não existe. Onde vem um `-d briefbot`
+# depois, esse último prevalece.
+PSQL="psql -h $SOCKET_DIR -p $PORT -U $SUPERUSER -d postgres -v ON_ERROR_STOP=1 -q"
 $PSQL -c "CREATE DATABASE briefbot;" >/dev/null
 
 echo "▸ criando stubs da plataforma (auth, vault, papéis)"
@@ -131,7 +140,7 @@ echo "  ✓ todas reaplicam sem erro"
 
 echo "▸ rodando supabase/tests/schema_test.sql"
 PGOPTIONS='--client-min-messages=notice' \
-psql -h "$SOCKET_DIR" -p "$PORT" -U postgres -d briefbot -v ON_ERROR_STOP=1 \
+psql -h "$SOCKET_DIR" -p "$PORT" -U "$SUPERUSER" -d briefbot -v ON_ERROR_STOP=1 \
      -f "$REPO_ROOT/supabase/tests/schema_test.sql" 2>&1 \
   | sed -e 's/^psql:.*NOTICE:  //' -e 's/^NOTICE:  //' \
   | grep -E '^(ok |FALHOU|ERROR|=| TODOS|--- b)'

@@ -135,10 +135,12 @@ após aplicar, o único ❌ esperado é o do `app_config` (passo 4).
 **2. Reconciliar o schema** — `supabase db pull`
 
 O baseline foi reconstruído a partir dos tipos gerados e do código, não de um
-dump. Compare com o banco real e ajuste divergências. Depois rode
-`supabase gen types typescript --linked` para regerar
-`src/integrations/supabase/types.ts`, que recebeu edições manuais
-(`join_token`, colunas `recording_*`, `verify_join_token`).
+dump. Compare com o banco real e ajuste divergências.
+
+`src/integrations/supabase/types.ts` **já não precisa de ação**: a Lovable o
+regenerou a partir do banco já migrado, e o arquivo agora traz `join_token`,
+as colunas `recording_*` e `verify_join_token` vindos do gerador, não mais de
+edição manual.
 
 **3. Configurar as variáveis das edge functions**
 
