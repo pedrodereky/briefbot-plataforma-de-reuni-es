@@ -11,6 +11,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ListChecks } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PageHeader, PageBody } from '@/components/PageHeader';
 
 type ActionItem = Tables<'action_items'>;
 type Meeting = Tables<'meetings'>;
@@ -82,20 +83,23 @@ export default function ActionItemsPage() {
   }, {});
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Action Items</h1>
-        <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="open">Abertos</SelectItem>
-            <SelectItem value="done">Concluídos</SelectItem>
-            <SelectItem value="all">Todos</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+    <>
+      <PageHeader
+        titulo="Action Items"
+        acoes={
+          <Select value={filter} onValueChange={(v) => setFilter(v as Filter)}>
+            <SelectTrigger className="w-[160px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="open">Abertos</SelectItem>
+              <SelectItem value="done">Concluídos</SelectItem>
+              <SelectItem value="all">Todos</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
+      <PageBody className="space-y-6">
 
       {isLoading ? (
         <div className="space-y-4">
@@ -142,7 +146,7 @@ export default function ActionItemsPage() {
                     {item.done ? (
                       <Badge variant="secondary" className="text-xs">Concluído</Badge>
                     ) : (
-                      <Badge className="bg-yellow-500/15 text-yellow-600 border-yellow-500/30 text-xs">Aberto</Badge>
+                      <Badge className="bg-warning/15 text-warning border-warning/30 text-xs">Aberto</Badge>
                     )}
                   </div>
                 ))}
@@ -151,6 +155,7 @@ export default function ActionItemsPage() {
           ))}
         </div>
       )}
-    </div>
+      </PageBody>
+    </>
   );
 }

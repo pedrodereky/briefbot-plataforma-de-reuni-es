@@ -142,17 +142,21 @@ export default function ContactsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Contatos</h1>
-        <Button onClick={openNew} className="gap-1">
-          <Plus className="h-4 w-4" /> Novo Contato
-        </Button>
-      </div>
-
-      <p className="text-sm text-muted-foreground">
-        Participantes frequentes das suas reuniões. Novos participantes são adicionados automaticamente.
-      </p>
+    <>
+      <PageHeader
+        titulo="Contatos"
+        resumo={`${filtered.length} ${filtered.length === 1 ? 'contato' : 'contatos'}`}
+        acoes={
+          <Button size="sm" onClick={openNew} className="gap-1.5">
+            <Plus className="h-4 w-4" /> Novo contato
+          </Button>
+        }
+      />
+      <PageBody className="space-y-6">
+        <p className="text-sm text-muted-foreground">
+          Participantes frequentes das suas reuniões. Novos participantes são adicionados
+          automaticamente.
+        </p>
 
       {/* Search */}
       <div className="relative max-w-sm">
@@ -278,6 +282,7 @@ export default function ContactsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+      </PageBody>
+    </>
   );
 }

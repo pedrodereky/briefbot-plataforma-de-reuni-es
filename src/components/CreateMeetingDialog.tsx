@@ -377,10 +377,10 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
               </div>
 
               {conflitos.length > 0 && (
-                <div className="sm:col-span-3 flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-2.5">
-                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                <div className="sm:col-span-3 flex items-start gap-2 rounded-md border border-warning/40 bg-warning/10 p-2.5">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
                   <div className="text-xs">
-                    <p className="font-medium text-amber-700">
+                    <p className="font-medium text-warning">
                       Choque de horário com {conflitos.length === 1 ? 'outra reunião' : `${conflitos.length} reuniões`}
                     </p>
                     <ul className="mt-0.5 text-muted-foreground">

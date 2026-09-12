@@ -1,109 +1,187 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Modern Meeting Platform Design System
-   Inspired by Zoom / Google Meet / Microsoft Teams
-   Professional blue + neutral grays + clean typography */
+/* BriefBot — Direção B, "operacional escuro"
+   IBM Plex Sans + Mono, teal como cor de ação, coral como alerta.
+
+   O tema segue o sistema por padrão: sem a classe .dark no <html>, o bloco
+   @media (prefers-color-scheme: dark) abaixo já entrega o tema escuro. A
+   classe .dark é a escolha explícita do usuário e ganha do sistema nos dois
+   sentidos (ver src/contexts/ThemeProvider.tsx).
+
+   Nenhum componente conhece cor: só token. */
 
 @layer base {
   :root {
-    --background: 220 14% 96%;
-    --foreground: 220 20% 10%;
+    color-scheme: light dark;
+
+    --background: 210 29% 97%;
+    --foreground: 216 22% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 216 22% 9%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 216 22% 9%;
 
-    --primary: 217 91% 50%;
+    /* Teal. No claro precisa ser bem mais escuro que no escuro: o #4fc3d4
+       do tema escuro não alcança 4.5:1 sobre branco. */
+    --primary: 188 84% 31%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 92%;
-    --secondary-foreground: 220 20% 10%;
+    --secondary: 202 30% 93%;
+    --secondary-foreground: 216 22% 9%;
 
-    --muted: 220 14% 94%;
-    --muted-foreground: 220 10% 46%;
+    --muted: 202 30% 93%;
+    --muted-foreground: 215 11% 45%;
 
-    --accent: 220 14% 92%;
-    --accent-foreground: 220 20% 10%;
+    --accent: 188 48% 91%;
+    --accent-foreground: 188 84% 25%;
 
-    --destructive: 0 72% 51%;
+    --destructive: 10 63% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 90%;
-    --input: 220 13% 90%;
-    --ring: 217 91% 50%;
+    --border: 213 21% 90%;
+    --input: 215 16% 76%;
+    --ring: 188 84% 31%;
 
-    --radius: 0.5rem;
+    --radius: 0.3125rem;
 
-    /* Sidebar: dark blue-gray */
-    --sidebar-background: 222 47% 11%;
-    --sidebar-foreground: 215 20% 75%;
-    --sidebar-primary: 217 91% 60%;
+    /* Trilho lateral: no claro é branco, separado do fundo pela borda. */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 214 16% 26%;
+    --sidebar-primary: 188 84% 31%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 40% 16%;
-    --sidebar-accent-foreground: 210 40% 95%;
-    --sidebar-border: 222 30% 18%;
-    --sidebar-ring: 217 91% 60%;
+    --sidebar-accent: 202 30% 93%;
+    --sidebar-accent-foreground: 216 22% 9%;
+    --sidebar-border: 213 21% 90%;
+    --sidebar-ring: 188 84% 31%;
 
-    /* Semantic colors */
-    --success: 142 71% 45%;
+    /* Semânticas. Cada uma precisa ser legível como TEXTO sobre o próprio
+       tom a 15% — é assim que os selos são montados (bg-x/15 + text-x). */
+    --success: 160 84% 26%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 32 92% 33%;
     --warning-foreground: 0 0% 100%;
-    --info: 217 91% 60%;
+    --info: 188 84% 31%;
     --info-foreground: 0 0% 100%;
+    --live: 10 63% 46%;
+    --live-foreground: 0 0% 100%;
+
+    /* Texto de apoio mais claro que o muted, para carimbos de horário. */
+    --faint: 219 12% 63%;
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 95%;
+    color-scheme: dark;
 
-    --card: 222 40% 9%;
-    --card-foreground: 210 40% 95%;
+    --background: 218 22% 7%;
+    --foreground: 218 19% 92%;
 
-    --popover: 222 40% 9%;
-    --popover-foreground: 210 40% 95%;
+    --card: 216 22% 9%;
+    --card-foreground: 218 19% 92%;
 
-    --primary: 217 91% 60%;
-    --primary-foreground: 0 0% 100%;
+    --popover: 216 22% 9%;
+    --popover-foreground: 218 19% 92%;
 
-    --secondary: 222 30% 14%;
-    --secondary-foreground: 210 40% 95%;
+    --primary: 188 61% 57%;
+    --primary-foreground: 218 22% 7%;
 
-    --muted: 222 30% 14%;
-    --muted-foreground: 215 15% 55%;
+    --secondary: 214 28% 11%;
+    --secondary-foreground: 218 19% 92%;
 
-    --accent: 222 30% 14%;
-    --accent-foreground: 210 40% 95%;
+    --muted: 214 28% 11%;
+    --muted-foreground: 217 11% 54%;
 
-    --destructive: 0 62% 40%;
-    --destructive-foreground: 0 0% 100%;
+    --accent: 205 28% 16%;
+    --accent-foreground: 188 61% 57%;
 
-    --border: 222 25% 16%;
-    --input: 222 25% 16%;
-    --ring: 217 91% 60%;
+    --destructive: 9 73% 63%;
+    --destructive-foreground: 218 22% 7%;
 
-    /* Sidebar dark */
-    --sidebar-background: 222 47% 5%;
-    --sidebar-foreground: 215 15% 65%;
-    --sidebar-primary: 217 91% 60%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 222 35% 10%;
-    --sidebar-accent-foreground: 210 40% 90%;
-    --sidebar-border: 222 25% 12%;
-    --sidebar-ring: 217 91% 60%;
+    --border: 214 24% 13%;
+    --input: 215 16% 27%;
+    --ring: 188 61% 57%;
 
-    --success: 142 60% 40%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 80% 50%;
-    --warning-foreground: 0 0% 100%;
-    --info: 217 80% 55%;
-    --info-foreground: 0 0% 100%;
+    --sidebar-background: 218 27% 6%;
+    --sidebar-foreground: 216 15% 75%;
+    --sidebar-primary: 188 61% 57%;
+    --sidebar-primary-foreground: 218 22% 7%;
+    --sidebar-accent: 214 28% 11%;
+    --sidebar-accent-foreground: 218 19% 92%;
+    --sidebar-border: 214 24% 13%;
+    --sidebar-ring: 188 61% 57%;
+
+    --success: 160 55% 52%;
+    --success-foreground: 218 22% 7%;
+    --warning: 38 78% 60%;
+    --warning-foreground: 218 22% 7%;
+    --info: 188 61% 57%;
+    --info-foreground: 218 22% 7%;
+    --live: 9 73% 63%;
+    --live-foreground: 218 22% 7%;
+
+    --faint: 215 12% 40%;
+  }
+
+  /* Sem escolha explícita, o sistema decide. Os mesmos valores da .dark:
+     a duplicação é o preço de deixar o tema certo já no primeiro pixel,
+     mesmo antes de o JavaScript rodar. */
+  @media (prefers-color-scheme: dark) {
+    :root:not(.light):not(.dark) {
+      color-scheme: dark;
+
+      --background: 218 22% 7%;
+      --foreground: 218 19% 92%;
+
+      --card: 216 22% 9%;
+      --card-foreground: 218 19% 92%;
+
+      --popover: 216 22% 9%;
+      --popover-foreground: 218 19% 92%;
+
+      --primary: 188 61% 57%;
+      --primary-foreground: 218 22% 7%;
+
+      --secondary: 214 28% 11%;
+      --secondary-foreground: 218 19% 92%;
+
+      --muted: 214 28% 11%;
+      --muted-foreground: 217 11% 54%;
+
+      --accent: 205 28% 16%;
+      --accent-foreground: 188 61% 57%;
+
+      --destructive: 9 73% 63%;
+      --destructive-foreground: 218 22% 7%;
+
+      --border: 214 24% 13%;
+      --input: 215 16% 27%;
+      --ring: 188 61% 57%;
+
+      --sidebar-background: 218 27% 6%;
+      --sidebar-foreground: 216 15% 75%;
+      --sidebar-primary: 188 61% 57%;
+      --sidebar-primary-foreground: 218 22% 7%;
+      --sidebar-accent: 214 28% 11%;
+      --sidebar-accent-foreground: 218 19% 92%;
+      --sidebar-border: 214 24% 13%;
+      --sidebar-ring: 188 61% 57%;
+
+      --success: 160 55% 52%;
+      --success-foreground: 218 22% 7%;
+      --warning: 38 78% 60%;
+      --warning-foreground: 218 22% 7%;
+      --info: 188 61% 57%;
+      --info-foreground: 218 22% 7%;
+      --live: 9 73% 63%;
+      --live-foreground: 218 22% 7%;
+
+      --faint: 215 12% 40%;
+    }
   }
 }
 
@@ -115,44 +193,39 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
   }
-}
 
-/* Login animated background */
-@keyframes drift-1 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(60px, -40px) scale(1.1); }
-  66% { transform: translate(-30px, 50px) scale(0.95); }
-}
-@keyframes drift-2 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  33% { transform: translate(-50px, 30px) scale(1.05); }
-  66% { transform: translate(40px, -60px) scale(1.1); }
-}
-@keyframes drift-3 {
-  0%, 100% { transform: translate(0, 0) scale(1); }
-  50% { transform: translate(30px, 30px) scale(1.08); }
-}
-@keyframes float-1 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-20px) rotate(8deg); }
-}
-@keyframes float-2 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-15px) rotate(-6deg); }
-}
-@keyframes float-3 {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  50% { transform: translateY(-25px) rotate(5deg); }
+  /* Números que se alinham em coluna: horários, contadores, durações. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Print styles for PDF export */
 @media print {
+  /* Impressão é sempre clara: a ata vai para papel ou PDF. Redefinir os
+     tokens (e não só body) leva junto cartões, bordas e selos. */
+  :root, :root.dark, :root.light {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 30%;
+    --border: 0 0% 80%;
+    --primary: 188 84% 25%;
+    --faint: 0 0% 45%;
+  }
+
   body {
     background: white !important;
     color: black !important;
   }
 
-  nav, header, footer,
+  /* O menu lateral é <aside>, e nunca era escondido aqui — a ata saía com a
+     navegação impressa junto. Já o <header> da página fica: é onde estão o
+     título e a data da reunião, que é justamente o que se quer no papel. Os
+     botões dele somem pela regra de button. */
+  nav, footer, aside,
   [data-sidebar], [data-topbar],
   button, .no-print,
   [role="tablist"] {

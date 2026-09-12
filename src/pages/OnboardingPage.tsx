@@ -258,7 +258,7 @@ export default function OnboardingPage() {
 
 function ConfiguredBadge({ configured }: { configured: boolean }) {
   return configured ? (
-    <Badge className="ml-2 gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15">
+    <Badge className="ml-2 gap-1 bg-success/15 text-success border-success/30 hover:bg-success/15">
       <ShieldCheck className="h-3 w-3" /> Configurada
     </Badge>
   ) : (
@@ -330,8 +330,8 @@ function LiveKitStep({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg flex-wrap">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/10">
-            <Video className="h-5 w-5 text-violet-600" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <Video className="h-5 w-5 text-primary" />
           </div>
           LiveKit — Vídeo e Áudio
           <ConfiguredBadge configured={configured} />
@@ -399,8 +399,8 @@ function DeepgramStep({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg flex-wrap">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
-            <Mic className="h-5 w-5 text-emerald-600" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-success/10">
+            <Mic className="h-5 w-5 text-success" />
           </div>
           Deepgram — Transcrição
           <ConfiguredBadge configured={configured} />
@@ -464,8 +464,8 @@ function ResendStep({
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-lg flex-wrap">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/10">
-            <Mail className="h-5 w-5 text-blue-600" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-info/10">
+            <Mail className="h-5 w-5 text-info" />
           </div>
           Email — Convites e Lembretes
           <ConfiguredBadge configured={configured} />
@@ -545,8 +545,8 @@ function DoneStep({
   return (
     <Card>
       <CardHeader className="text-center pb-2">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-green-500/10">
-          <Check className="h-8 w-8 text-green-600" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-success/10">
+          <Check className="h-8 w-8 text-success" />
         </div>
         <CardTitle className="text-2xl">Tudo pronto!</CardTitle>
         <CardDescription className="text-base">
@@ -594,10 +594,10 @@ function StepNav({ onPrev, onNext, nextLabel = 'Próximo' }: { onPrev: () => voi
 
 function CheckItem({ ok, label }: { ok: boolean; label: string }) {
   return (
-    <div className={cn('flex items-center gap-2 rounded-lg border p-3', ok ? 'border-green-500/30 bg-green-500/5' : 'border-border')}>
+    <div className={cn('flex items-center gap-2 rounded-lg border p-3', ok ? 'border-success/30 bg-success/5' : 'border-border')}>
       <div className={cn(
         'flex h-5 w-5 items-center justify-center rounded-full',
-        ok ? 'bg-green-500 text-white' : 'border-2 border-muted-foreground/30'
+        ok ? 'bg-success text-success-foreground' : 'border-2 border-muted-foreground/30'
       )}>
         {ok && <Check className="h-3 w-3" />}
       </div>

@@ -3,10 +3,11 @@ import { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard, CalendarDays, Users, ListChecks, UserCircle,
-  Video, Settings, Bot, Plus, Zap, ChevronLeft, ChevronRight,
-  PanelLeftClose, PanelLeft,
+  Video, Settings, Plus, Zap, PanelLeftClose, PanelLeft, LogOut,
 } from 'lucide-react';
 import { useCreateInstantMeeting } from '@/hooks/useCreateInstantMeeting';
+import { useOpenActionItems } from '@/hooks/useOpenActionItems';
+import { useAuth } from '@/contexts/AuthProvider';
 import { CreateMeetingDialog } from '@/components/CreateMeetingDialog';
 import { cn } from '@/lib/utils';
 import {
@@ -15,26 +16,20 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 
-const sections = [
-  {
-    label: 'Menu',
-    items: [
-      { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
-      { title: 'Agenda', url: '/calendar', icon: CalendarDays },
-      { title: 'Reuniões', url: '/meetings', icon: Users },
-    ],
-  },
-  {
-    label: 'Trabalho',
-    items: [
-      { title: 'Action Items', url: '/action-items', icon: ListChecks },
-      { title: 'Contatos', url: '/contacts', icon: UserCircle },
-      { title: 'Gravações', url: '/recordings', icon: Video },
-    ],
-  },
-];
-
-const bottomItems = [
+/**
+ * Uma lista só, sem rótulos de seção.
+ *
+ * A divisão anterior em "Menu" e "Trabalho" gastava duas linhas para separar
+ * seis itens que cabem de uma vez na altura da tela — e nenhum usuário procura
+ * "Gravações" dentro de "Trabalho", procura por "Gravações".
+ */
+const itens = [
+  { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
+  { title: 'Agenda', url: '/calendar', icon: CalendarDays },
+  { title: 'Reuniões', url: '/meetings', icon: Users },
+  { title: 'Action Items', url: '/action-items', icon: ListChecks, contador: true },
+  { title: 'Contatos', url: '/contacts', icon: UserCircle },
+  { title: 'Gravações', url: '/recordings', icon: Video },
   { title: 'Configurações', url: '/settings', icon: Settings },
 ];
 
@@ -43,170 +38,200 @@ export function AppSidebar() {
   const { createInstant, creating } = useCreateInstantMeeting();
   const [createOpen, setCreateOpen] = useState(false);
   const location = useLocation();
+  const { user, signOut } = useAuth();
+  const { data: abertos } = useOpenActionItems();
+
+  const nome = (user?.user_metadata?.full_name as string | undefined) ?? user?.email ?? '';
+  const iniciais = nome
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .map((parte: string) => parte[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   return (
     <aside
       className={cn(
-        'flex flex-col h-screen sticky top-0 border-r border-border/50 bg-card transition-all duration-300 ease-in-out shrink-0',
-        collapsed ? 'w-[68px]' : 'w-[240px]'
+        'sticky top-0 flex h-screen shrink-0 flex-col border-r border-sidebar-border bg-sidebar transition-[width] duration-200 ease-out',
+        collapsed ? 'w-[64px]' : 'w-[204px]',
       )}
     >
-      {/* Header */}
-      <div className={cn(
-        'flex items-center h-14 border-b border-border/50 px-4 shrink-0',
-        collapsed ? 'justify-center' : 'justify-between'
-      )}>
+      <div
+        className={cn(
+          'flex h-14 shrink-0 items-center px-[18px]',
+          collapsed ? 'justify-center px-0' : 'justify-between',
+        )}
+      >
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Bot className="h-4 w-4" />
-          </div>
+          <MarcaBriefBot />
           {!collapsed && (
-            <span className="text-sm font-semibold text-foreground">BriefBot</span>
+            <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-sidebar-foreground">
+              BriefBot
+            </span>
           )}
         </div>
         {!collapsed && (
           <button
             onClick={() => setCollapsed(true)}
-            className="text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Recolher menu"
+            className="text-muted-foreground transition-colors hover:text-foreground"
           >
             <PanelLeftClose className="h-4 w-4" />
           </button>
         )}
       </div>
 
-      {/* Quick actions */}
-      <div className={cn('px-3 py-3 space-y-1 shrink-0', collapsed && 'px-2')}>
+      <div className={cn('shrink-0 space-y-1.5 px-3 pb-4', collapsed && 'px-2')}>
         {collapsed ? (
           <>
-            <SidebarTooltip label="Nova Reunião">
+            <DicaLateral label="Nova reunião">
               <button
                 onClick={() => setCreateOpen(true)}
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 transition-colors mx-auto"
+                aria-label="Nova reunião"
+                className="mx-auto flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Plus className="h-4 w-4" />
               </button>
-            </SidebarTooltip>
-            <SidebarTooltip label="Reunião Rapida">
+            </DicaLateral>
+            <DicaLateral label="Reunião rápida">
               <button
                 onClick={() => createInstant()}
                 disabled={creating}
-                className="flex h-9 w-9 items-center justify-center rounded-lg border border-border text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mx-auto"
+                aria-label="Reunião rápida"
+                className="mx-auto flex h-9 w-9 items-center justify-center rounded-md border border-sidebar-border text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
               >
                 <Zap className="h-4 w-4" />
               </button>
-            </SidebarTooltip>
+            </DicaLateral>
           </>
         ) : (
           <>
             <button
               onClick={() => setCreateOpen(true)}
-              className="flex w-full items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+              className="flex w-full items-center gap-2 rounded-md bg-primary px-3 py-2 text-[13px] font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              <Plus className="h-4 w-4" /> Nova Reunião
+              <Plus className="h-4 w-4" /> Nova reunião
             </button>
             <button
               onClick={() => createInstant()}
               disabled={creating}
-              className="flex w-full items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+              className="flex w-full items-center gap-2 rounded-md border border-sidebar-border px-3 py-2 text-[13px] text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
             >
-              <Zap className="h-4 w-4" /> Reunião Rapida
+              <Zap className="h-4 w-4" /> Reunião rápida
             </button>
           </>
         )}
         <CreateMeetingDialog open={createOpen} onOpenChange={setCreateOpen} />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-1 space-y-5">
-        {sections.map((section) => (
-          <div key={section.label}>
-            {!collapsed && (
-              <p className="px-2 mb-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/60">
-                {section.label}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {section.items.map((item) => (
-                <SidebarItem
-                  key={item.url}
-                  item={item}
-                  collapsed={collapsed}
-                  active={location.pathname === item.url || (item.url === '/dashboard' && location.pathname === '/')}
-                />
-              ))}
-            </div>
-          </div>
-        ))}
-      </nav>
-
-      {/* Bottom */}
-      <div className="px-3 py-3 border-t border-border/50 space-y-0.5 shrink-0">
-        {bottomItems.map((item) => (
-          <SidebarItem
+      <nav className={cn('flex-1 space-y-0.5 overflow-y-auto px-2', collapsed && 'px-2')}>
+        {itens.map((item) => (
+          <ItemDoMenu
             key={item.url}
             item={item}
             collapsed={collapsed}
-            active={location.pathname === item.url}
+            contador={item.contador ? abertos ?? 0 : 0}
+            ativo={
+              location.pathname === item.url ||
+              (item.url === '/dashboard' && location.pathname === '/')
+            }
           />
         ))}
-        {collapsed && (
-          <SidebarTooltip label="Expandir">
+      </nav>
+
+      <div className={cn('shrink-0 px-[18px] py-4', collapsed && 'px-2')}>
+        {collapsed ? (
+          <DicaLateral label="Expandir menu">
             <button
               onClick={() => setCollapsed(false)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors mx-auto mt-1"
+              aria-label="Expandir menu"
+              className="mx-auto flex h-9 w-9 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
             >
               <PanelLeft className="h-4 w-4" />
             </button>
-          </SidebarTooltip>
+          </DicaLateral>
+        ) : (
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-accent text-[11.5px] font-semibold text-accent-foreground">
+              {iniciais || '?'}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {nome.split('@')[0] || 'Conta'}
+            </span>
+            <button
+              onClick={signOut}
+              aria-label="Sair"
+              className="text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          </div>
         )}
       </div>
     </aside>
   );
 }
 
-function SidebarItem({
+/** Balão de fala com as linhas do briefing dentro. */
+function MarcaBriefBot() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      className="h-[17px] w-[17px] shrink-0 text-primary"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M4 5h16v11H8l-4 4z" />
+      <path d="M8 9h8" />
+      <path d="M8 12.5h5" />
+    </svg>
+  );
+}
+
+function ItemDoMenu({
   item,
   collapsed,
-  active,
+  ativo,
+  contador,
 }: {
   item: { title: string; url: string; icon: LucideIcon };
   collapsed: boolean;
-  active: boolean;
+  ativo: boolean;
+  contador: number;
 }) {
   const Icon = item.icon;
 
-  const content = (
+  const conteudo = (
     <NavLink
       to={item.url}
       className={cn(
-        'group relative flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm transition-all duration-150',
-        collapsed && 'justify-center px-0 py-2',
-        active
-          ? 'bg-primary/10 text-primary font-medium'
-          : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'
+        'flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] transition-colors',
+        collapsed && 'justify-center px-0',
+        ativo
+          ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground'
+          : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-foreground',
       )}
     >
-      {/* Active indicator */}
-      {active && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary transition-all" />
+      <Icon className={cn('h-4 w-4 shrink-0', ativo && 'text-primary')} />
+      {!collapsed && <span className="flex-1 truncate">{item.title}</span>}
+      {!collapsed && contador > 0 && (
+        <span className="font-mono text-[11.5px] text-destructive">{contador}</span>
       )}
-      <Icon className={cn('h-[18px] w-[18px] shrink-0', active && 'text-primary')} />
-      {!collapsed && <span>{item.title}</span>}
+      {collapsed && contador > 0 && (
+        <span className="absolute ml-5 -mt-4 h-1.5 w-1.5 rounded-full bg-destructive" />
+      )}
     </NavLink>
   );
 
-  if (collapsed) {
-    return (
-      <SidebarTooltip label={item.title}>
-        {content}
-      </SidebarTooltip>
-    );
-  }
-
-  return content;
+  return collapsed ? <DicaLateral label={item.title}>{conteudo}</DicaLateral> : conteudo;
 }
 
-function SidebarTooltip({ children, label }: { children: React.ReactNode; label: string }) {
+function DicaLateral({ children, label }: { children: React.ReactNode; label: string }) {
   return (
     <Tooltip delayDuration={0}>
       <TooltipTrigger asChild>{children}</TooltipTrigger>

@@ -26,6 +26,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageHeader } from '@/components/PageHeader';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import {
@@ -124,25 +125,29 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
     }
   };
 
-  return (
-    <div className="space-y-4">
-      <Button variant="ghost" size="sm" onClick={() => navigate('/meetings')} className="gap-1 -ml-2">
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </Button>
+  // Uma linha só, em monoespaçada, no lugar dos dois blocos com ícone: data,
+  // duração e quantas pessoas. É o que se lê de relance ao abrir a ata.
+  const resumo = [
+    format(start, "dd MMM yyyy · HH'h'mm", { locale: ptBR }),
+    duration != null ? `${duration} min` : null,
+    `${attendees.length + 1} ${attendees.length + 1 === 1 ? 'participante' : 'participantes'}`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
-      <div className="space-y-2">
-        <h1 className="text-2xl font-bold">{meeting.title}</h1>
-        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
-          <span className="flex items-center gap-1">
-            <Clock className="h-4 w-4" />
-            {format(start, "EEEE, dd MMM yyyy • HH'h'mm", { locale: ptBR })}
-            {duration != null && ` (${duration} min)`}
-          </span>
-          <span className="flex items-center gap-1">
-            <Users className="h-4 w-4" />
-            {attendees.length + 1} participante{attendees.length + 1 !== 1 && 's'}
-          </span>
-        </div>
+  return (
+    <>
+      <PageHeader titulo={meeting.title} resumo={resumo}>
+        <button
+          type="button"
+          onClick={() => navigate('/meetings')}
+          className="flex w-fit items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" /> Reuniões
+        </button>
+      </PageHeader>
+
+      <div className="flex flex-col gap-3 border-b border-border px-6 py-4 lg:px-7">
 
         {/* Attendee avatars */}
         {attendees.length > 0 && (
@@ -338,7 +343,25 @@ function MeetingHeader({ meeting }: { meeting: Meeting }) {
           </DialogContent>
         </Dialog>
       </div>
-    </div>
+    </>
+  );
+}
+
+/**
+ * Aba sublinhada.
+ *
+ * O padrão do shadcn é uma pílula dentro de uma caixa cinza; com seis abas
+ * isso vira uma barra pesada no topo de toda ata. O sublinhado ocupa a mesma
+ * linha e some quando não está ativo.
+ */
+function AbaDetalhe({ valor, children }: { valor: string; children: React.ReactNode }) {
+  return (
+    <TabsTrigger
+      value={valor}
+      className="rounded-none border-b-2 border-transparent bg-transparent px-0 pb-2.5 pt-3 text-[13px] text-muted-foreground shadow-none data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:font-medium data-[state=active]:text-primary data-[state=active]:shadow-none"
+    >
+      {children}
+    </TabsTrigger>
   );
 }
 
@@ -850,44 +873,48 @@ export default function MeetingDetailPage() {
     );
   }
 
+  // Com a ata pronta, é ela que se abre: depois da reunião ninguém volta aqui
+  // para reler o briefing.
+  const abaInicial = meeting.summary_sent ? 'summary' : 'briefing';
+
   return (
-    <div className="space-y-6">
+    <>
       <MeetingHeader meeting={meeting} />
 
-      <Tabs defaultValue="briefing">
-        <TabsList>
-          <TabsTrigger value="briefing">Briefing Pre</TabsTrigger>
-          <TabsTrigger value="summary">Ata</TabsTrigger>
-          <TabsTrigger value="actions">Actions</TabsTrigger>
-          <TabsTrigger value="transcript">Transcrição</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
-          <TabsTrigger value="recording">Gravação</TabsTrigger>
+      <Tabs defaultValue={abaInicial}>
+        <TabsList className="h-auto w-full justify-start gap-5 rounded-none border-b border-border bg-transparent px-6 pb-0 pt-0 lg:px-7">
+          <AbaDetalhe valor="briefing">Briefing</AbaDetalhe>
+          <AbaDetalhe valor="summary">Ata</AbaDetalhe>
+          <AbaDetalhe valor="actions">Action Items</AbaDetalhe>
+          <AbaDetalhe valor="transcript">Transcrição</AbaDetalhe>
+          <AbaDetalhe valor="insights">Insights</AbaDetalhe>
+          <AbaDetalhe valor="recording">Gravação</AbaDetalhe>
         </TabsList>
 
-        <TabsContent value="briefing" className="mt-4">
+        <TabsContent value="briefing" className="px-6 py-6 lg:px-7">
           <BriefingTab meeting={meeting} briefing={preBriefing} />
         </TabsContent>
 
-        <TabsContent value="summary" className="mt-4">
+        <TabsContent value="summary" className="px-6 py-6 lg:px-7">
           <SummaryTab meeting={meeting} summary={postBriefing} />
         </TabsContent>
 
-        <TabsContent value="actions" className="mt-4">
+        <TabsContent value="actions" className="px-6 py-6 lg:px-7">
           <ActionItemsTab meetingId={meeting.id} />
         </TabsContent>
 
-        <TabsContent value="transcript" className="mt-4">
+        <TabsContent value="transcript" className="px-6 py-6 lg:px-7">
           <TranscriptTab meetingId={meeting.id} />
         </TabsContent>
 
-        <TabsContent value="insights" className="mt-4">
+        <TabsContent value="insights" className="px-6 py-6 lg:px-7">
           <InsightsTab meeting={meeting} />
         </TabsContent>
 
-        <TabsContent value="recording" className="mt-4">
+        <TabsContent value="recording" className="px-6 py-6 lg:px-7">
           <RecordingTab meetingId={meeting.id} />
         </TabsContent>
       </Tabs>
-    </div>
+    </>
   );
 }

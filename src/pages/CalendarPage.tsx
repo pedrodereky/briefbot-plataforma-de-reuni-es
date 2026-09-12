@@ -11,6 +11,7 @@ import { CreateMeetingDialog } from '@/components/CreateMeetingDialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { PageHeader, PageBody } from '@/components/PageHeader';
 import { getWeekDays, getMonthGrid, positionMeeting } from '@/lib/calendar-utils';
 import { Tables } from '@/integrations/supabase/types';
 
@@ -57,25 +58,27 @@ export default function CalendarPage() {
     meetings.filter((m) => isSameDay(new Date(m.starts_at), day));
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Agenda</h1>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating} className="gap-1">
-            <Zap className="h-4 w-4" /> Iniciar Agora
-          </Button>
-          <CreateMeetingDialog
-            open={createOpen}
-            onOpenChange={setCreateOpen}
-            trigger={
-              <Button size="sm" className="gap-1">
-                <Plus className="h-4 w-4" /> Nova Reunião
-              </Button>
-            }
-          />
-        </div>
-      </div>
+    <>
+      <PageHeader
+        titulo="Agenda"
+        acoes={
+          <>
+            <Button variant="outline" size="sm" onClick={() => createInstant()} disabled={creating} className="gap-1.5">
+              <Zap className="h-4 w-4" /> Iniciar agora
+            </Button>
+            <CreateMeetingDialog
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              trigger={
+                <Button size="sm" className="gap-1.5">
+                  <Plus className="h-4 w-4" /> Nova reunião
+                </Button>
+              }
+            />
+          </>
+        }
+      />
+      <PageBody className="space-y-4">
 
       {/* Navigation */}
       <div className="flex items-center justify-between">
@@ -102,7 +105,8 @@ export default function CalendarPage() {
       ) : (
         <MonthView grid={monthGrid} anchor={anchor} getMeetings={getMeetingsForDay} onMeetingClick={(id) => navigate(`/meetings/${id}`)} />
       )}
-    </div>
+      </PageBody>
+    </>
   );
 }
 
@@ -145,7 +149,7 @@ function WeekView({
               {/* Meetings */}
               {dayMeetings.map((m) => {
                 const pos = positionMeeting(m.starts_at, m.ends_at);
-                const statusColor = m.meeting_status === 'live' ? 'bg-red-500' : m.meeting_status === 'ended' ? 'bg-gray-400' : 'bg-primary';
+                const statusColor = m.meeting_status === 'live' ? 'bg-live' : m.meeting_status === 'ended' ? 'bg-muted-foreground' : 'bg-primary';
                 return (
                   <button
                     key={m.id}
@@ -165,6 +169,7 @@ function WeekView({
     </div>
   );
 }
+
 
 function MonthView({
   grid, anchor, getMeetings, onMeetingClick,
@@ -210,3 +215,4 @@ function MonthView({
     </div>
   );
 }
+

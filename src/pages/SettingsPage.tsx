@@ -22,9 +22,11 @@ import {
 import {
   Eye, EyeOff, ExternalLink, LogOut, Trash2, Loader2,
   Link as LinkIcon, MessageSquare, Sparkles, User, Key,
-  Video, Mic, Mail, ShieldCheck, AlertTriangle, RefreshCw,
+  Video, Mic, Mail, ShieldCheck, AlertTriangle, RefreshCw, Palette,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppearanceSection } from '@/components/AppearanceSection';
+import { PageHeader, PageBody } from '@/components/PageHeader';
 
 type UserSettings = Tables<'user_settings'>;
 
@@ -84,30 +86,36 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-bold text-foreground">Configurações</h1>
-      <Tabs defaultValue="api-keys" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="api-keys" className="gap-1.5"><Key className="h-4 w-4" /> API Keys</TabsTrigger>
-          <TabsTrigger value="integrations" className="gap-1.5"><LinkIcon className="h-4 w-4" /> Integrações</TabsTrigger>
-          <TabsTrigger value="prompts" className="gap-1.5"><Sparkles className="h-4 w-4" /> Prompts</TabsTrigger>
-          <TabsTrigger value="account" className="gap-1.5"><User className="h-4 w-4" /> Conta</TabsTrigger>
-        </TabsList>
+    <>
+      <PageHeader titulo="Configurações" />
+      <PageBody>
+        <Tabs defaultValue="aparencia" className="mx-auto max-w-3xl space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="aparencia" className="gap-1.5"><Palette className="h-4 w-4" /> Aparência</TabsTrigger>
+            <TabsTrigger value="api-keys" className="gap-1.5"><Key className="h-4 w-4" /> API Keys</TabsTrigger>
+            <TabsTrigger value="integrations" className="gap-1.5"><LinkIcon className="h-4 w-4" /> Integrações</TabsTrigger>
+            <TabsTrigger value="prompts" className="gap-1.5"><Sparkles className="h-4 w-4" /> Prompts</TabsTrigger>
+            <TabsTrigger value="account" className="gap-1.5"><User className="h-4 w-4" /> Conta</TabsTrigger>
+          </TabsList>
 
-        <TabsContent value="api-keys">
-          <ApiKeysSection settings={settings} userId={user?.id} />
-        </TabsContent>
-        <TabsContent value="integrations">
-          <IntegrationsSection settings={settings} userId={user?.id} />
-        </TabsContent>
-        <TabsContent value="prompts">
-          <PromptsSection settings={settings} userId={user?.id} />
-        </TabsContent>
-        <TabsContent value="account">
-          <AccountSection user={user} />
-        </TabsContent>
-      </Tabs>
-    </div>
+          <TabsContent value="aparencia">
+            <AppearanceSection />
+          </TabsContent>
+          <TabsContent value="api-keys">
+            <ApiKeysSection settings={settings} userId={user?.id} />
+          </TabsContent>
+          <TabsContent value="integrations">
+            <IntegrationsSection settings={settings} userId={user?.id} />
+          </TabsContent>
+          <TabsContent value="prompts">
+            <PromptsSection settings={settings} userId={user?.id} />
+          </TabsContent>
+          <TabsContent value="account">
+            <AccountSection user={user} />
+          </TabsContent>
+        </Tabs>
+      </PageBody>
+    </>
   );
 }
 
@@ -135,8 +143,8 @@ const SERVICES: ServiceDef[] = [
     title: 'LiveKit',
     description: 'Vídeo e áudio das reuniões ao vivo',
     icon: Video,
-    iconBg: 'bg-violet-500/10',
-    iconColor: 'text-violet-600',
+    iconBg: 'bg-primary/10',
+    iconColor: 'text-primary',
     registryServices: ['livekit_api_key', 'livekit_api_secret', 'livekit_url'],
     fields: [
       { name: 'livekit_api_key', label: 'API Key', placeholder: 'APIxxxxxxxx' },
@@ -151,8 +159,8 @@ const SERVICES: ServiceDef[] = [
     title: 'Deepgram',
     description: 'Transcrição em tempo real durante as reuniões',
     icon: Mic,
-    iconBg: 'bg-emerald-500/10',
-    iconColor: 'text-emerald-600',
+    iconBg: 'bg-success/10',
+    iconColor: 'text-success',
     registryServices: ['deepgram_api_key'],
     fields: [
       { name: 'deepgram_api_key', label: 'API Key', placeholder: 'xxxxxxxxxxxxxxxxxxxxxxxx', type: 'password' },
@@ -165,8 +173,8 @@ const SERVICES: ServiceDef[] = [
     title: 'Resend',
     description: 'Envio de convites, lembretes e briefings por email',
     icon: Mail,
-    iconBg: 'bg-blue-500/10',
-    iconColor: 'text-blue-600',
+    iconBg: 'bg-info/10',
+    iconColor: 'text-info',
     registryServices: ['resend_api_key'],
     fields: [
       { name: 'resend_api_key', label: 'API Key', placeholder: 're_...', type: 'password' },
@@ -390,7 +398,7 @@ function ServiceCard({
 function StatusBadge({ status }: { status: 'active' | 'invalid' | 'not_configured' }) {
   if (status === 'active') {
     return (
-      <Badge className="gap-1 bg-emerald-500/15 text-emerald-700 border-emerald-500/30 hover:bg-emerald-500/15">
+      <Badge className="gap-1 bg-success/15 text-success border-success/30 hover:bg-success/15">
         <ShieldCheck className="h-3 w-3" /> Ativa
       </Badge>
     );
