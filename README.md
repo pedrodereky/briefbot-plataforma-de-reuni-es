@@ -151,7 +151,16 @@ dump. Compare com o banco real e ajuste divergências. Depois rode
 
 **4. Ativar o cron** — preencher `public.app_config` (SQL na seção "Agenda")
 
-**5. Conferir o restante**
+**5. Publicar as edge functions** — ver
+[`docs/DEPLOY-EDGE-FUNCTIONS.md`](./docs/DEPLOY-EDGE-FUNCTIONS.md)
+
+Dois detalhes desse deploy derrubam o app quando passam despercebidos: a pasta
+nova `supabase/functions/_shared/`, da qual toda function depende, e a
+configuração de `verify_jwt` — cinco functions precisam continuar públicas, e
+errar isso falha em silêncio. O documento traz o roteiro e um texto pronto para
+pedir o deploy.
+
+**6. Conferir o restante**
 
 - [ ] 17 edge functions deployadas
 - [ ] Realtime habilitado em `meetings` e `meeting_transcripts`
@@ -160,7 +169,7 @@ dump. Compare com o banco real e ajuste divergências. Depois rode
       auto-reparo em runtime é só rede de proteção)
 - [ ] Onboarding executado com LiveKit + Deepgram + Resend
 
-**6. Validar em homologação o que não pôde ser testado automaticamente**
+**7. Validar em homologação o que não pôde ser testado automaticamente**
 
 - [ ] Gravar uma reunião de ponta a ponta: o caminho do egress S3 e o evento
       `egress_ended` foram escritos a partir da API do SDK, sem execução contra
