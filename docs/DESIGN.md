@@ -75,8 +75,23 @@ Quatro, e são quatro telas diferentes de propósito:
 | Carregando | `ListSkeleton`, `MetricStrip carregando` | Esqueleto com a forma do conteúdo que vem. Cabeçalho e botões ficam de fora: já são conhecidos, e virar bloco cinza faz a tela pular |
 | Erro | `ErrorState` | Diz o que **não** se perdeu. Falha da IA depois de 1h40 de reunião gera pânico de "perdi a reunião"; a frase "Nada foi perdido: a transcrição está salva" transforma o erro em espera |
 
-## O que ainda não foi aplicado
+## Celular
 
-O mobile das telas internas usa o responsivo do Tailwind, mas as adaptações
-desenhadas — copiloto como folha que sobe na sala, barra de abas inferior — não
-foram implementadas. Estão nos mockups aprovados.
+O menu lateral é fixo no desktop e **gaveta abaixo de `lg`**: sai do fluxo,
+desliza por cima, e fecha ao navegar, no Esc, no X ou tocando no fundo — que
+também trava a rolagem da página atrás. O botão de abrir vive no `PageHeader`
+(`lg:hidden`), então toda página ganha ele sem código próprio.
+
+Antes disso a barra ficava com 204 dos 390px de um celular e sobravam 186 para
+o conteúdo: título quebrado, botão de ação cortado e linha de reunião sem o
+título. Medido, não estimado. Agora o conteúdo recebe os 390px inteiros.
+
+As linhas de reunião do painel empilham abaixo de `sm` — horário e entrega da
+IA dividem a primeira linha, o título fica com a largura toda embaixo.
+
+### O que ainda não foi aplicado
+
+As adaptações desenhadas para o celular que vão além de caber na tela: barra de
+abas inferior, cartão único da próxima reunião no painel, copiloto como folha
+que sobe na sala, ação principal da ata fixa acima das abas. Estão nos mockups
+aprovados.

@@ -88,10 +88,18 @@ function LinhaDeReuniao({ meeting, mostrarDia }: { meeting: Meeting; mostrarDia?
     <button
       type="button"
       onClick={() => navigate(`/meetings/${meeting.id}`)}
-      className="flex w-full items-center gap-4 bg-card px-4 py-3 text-left transition-colors hover:bg-accent/40"
+      className="flex w-full flex-col gap-1 bg-card px-4 py-3 text-left transition-colors hover:bg-accent/40 sm:flex-row sm:items-center sm:gap-4"
     >
-      <span className="tabular min-w-[44px] shrink-0 font-mono text-[13px] text-foreground">
-        {mostrarDia && !ehHoje(meeting.starts_at) ? diaCurto(meeting.starts_at) : hora(meeting.starts_at)}
+      {/* No celular horário e entrega dividem a primeira linha, e o título fica
+          com a largura toda embaixo. Lado a lado, o selo comia o título: sobrava
+          "Alinhamento ..." */}
+      <span className="flex w-full items-center justify-between gap-3 sm:w-auto sm:justify-start">
+        <span className="tabular min-w-[44px] shrink-0 font-mono text-[13px] text-foreground">
+          {mostrarDia && !ehHoje(meeting.starts_at) ? diaCurto(meeting.starts_at) : hora(meeting.starts_at)}
+        </span>
+        <span className="shrink-0 sm:hidden">
+          <EntregaDaIA meeting={meeting} />
+        </span>
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span className="truncate text-sm font-medium text-foreground">{meeting.title}</span>
@@ -106,7 +114,7 @@ function LinhaDeReuniao({ meeting, mostrarDia }: { meeting: Meeting; mostrarDia?
           )}
         </span>
       </span>
-      <span className="shrink-0">
+      <span className="hidden shrink-0 sm:block">
         <EntregaDaIA meeting={meeting} />
       </span>
     </button>
