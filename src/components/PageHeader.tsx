@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react';
+import { Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useMobileNav } from '@/components/MobileNav';
 
 /**
  * Cabeçalho de página: título, um resumo em monoespaçada e as ações.
@@ -24,6 +26,8 @@ export function PageHeader({
   /** Trilha de navegação ou qualquer coisa acima do título. */
   children?: ReactNode;
 }) {
+  const { abrir, disponivel } = useMobileNav();
+
   return (
     <header
       className={cn(
@@ -33,7 +37,17 @@ export function PageHeader({
     >
       {children}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1">
+        <div className="flex min-w-0 flex-wrap items-baseline gap-x-3.5 gap-y-1">
+          {disponivel && (
+            <button
+              type="button"
+              onClick={abrir}
+              aria-label="Abrir menu"
+              className="-ml-1 self-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:hidden"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+          )}
           <h1 className="text-[19px] font-semibold tracking-[-0.01em] text-foreground">
             {titulo}
           </h1>
