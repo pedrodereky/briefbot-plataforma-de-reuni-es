@@ -22,6 +22,25 @@
 </head>
 
   <body>
+    <script>
+      // Resolve o tema antes do primeiro pixel. Sem isto, quem escolheu
+      // "escuro" vê um lampejo claro a cada carregamento, porque os valores
+      // claros ficam no :root e a classe só entraria depois do React montar.
+      // Mesma lógica de src/contexts/ThemeProvider.tsx, de propósito
+      // duplicada: aqui ela precisa rodar sem nenhum módulo carregado.
+      (function () {
+        try {
+          var escolha = localStorage.getItem('briefbot-tema') || 'sistema';
+          var escuro =
+            escolha === 'escuro' ||
+            (escolha === 'sistema' &&
+              window.matchMedia('(prefers-color-scheme: dark)').matches);
+          document.documentElement.classList.add(escuro ? 'dark' : 'light');
+        } catch (e) {
+          // Armazenamento bloqueado: o @media do CSS cobre o caso sozinho.
+        }
+      })();
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

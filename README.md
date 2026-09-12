@@ -10,7 +10,7 @@ Plataforma de reuniões inteligentes com videoconferência (LiveKit), transcriç
 - **Transcrição:** Deepgram (Nova-2, pt-BR, streaming)
 - **IA:** Lovable AI Gateway (`google/gemini-3-flash-preview`)
 - **Email:** Resend
-- **UI:** pt-BR · Tema Tivora (cream + verde + rosa, Inter + Playfair Display)
+- **UI:** pt-BR · IBM Plex Sans + Mono, teal como cor de ação · tema claro/escuro que segue o sistema (ver `docs/DESIGN.md`)
 
 ---
 

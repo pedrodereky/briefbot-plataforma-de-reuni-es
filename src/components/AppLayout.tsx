@@ -1,17 +1,16 @@
 import { Outlet } from 'react-router-dom';
 import { AppSidebar } from './AppSidebar';
-import { TopBar } from './TopBar';
 
 export function AppLayout() {
   return (
     <div className="flex min-h-screen w-full bg-background">
       <AppSidebar />
-      <div className="flex flex-1 flex-col min-w-0">
-        <TopBar />
-        <main className="flex-1 overflow-auto p-6 lg:p-8">
-          <Outlet />
-        </main>
-      </div>
+      {/* Sem padding: cada página abre com o próprio PageHeader, que vai de
+          ponta a ponta e fecha com uma linha. O respiro entra depois, no
+          PageBody. */}
+      <main className="flex min-w-0 flex-1 flex-col overflow-auto">
+        <Outlet />
+      </main>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { LiveKitRoom, RoomAudioRenderer } from '@livekit/components-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useTemaTravado } from '@/contexts/ThemeProvider';
 import { useLiveKit } from '@/hooks/useLiveKit';
 import { useTranscription } from '@/hooks/useTranscription';
 import { useRealtimeTranscripts } from '@/hooks/useRealtimeTranscripts';
@@ -20,6 +21,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 
 export default function MeetingRoomPage() {
+  // Vídeo pede fundo escuro ao redor, como Meet e Zoom fazem: esta é a
+  // única rota que ignora a preferência de tema do usuário.
+  useTemaTravado('escuro');
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
