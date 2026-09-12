@@ -1,3 +1,4 @@
+import type { Tables } from '@/integrations/supabase/types';
 import { useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -54,7 +55,7 @@ export function useRealtimeTranscripts(meetingId: string | undefined) {
           filter: `meeting_id=eq.${meetingId}`,
         },
         (payload) => {
-          const t = payload.new as any;
+          const t = payload.new as Tables<'meeting_transcripts'>;
           if (!t.is_final) return;
 
           const entry: TranscriptEntry = {

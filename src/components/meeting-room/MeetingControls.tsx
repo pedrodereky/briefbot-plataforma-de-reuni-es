@@ -1,3 +1,5 @@
+import type { AudioCaptureOptions, VideoCaptureOptions } from 'livekit-client';
+import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useLocalParticipant, useRoomContext, useParticipants } from '@livekit/components-react';
 import { Track, DataPacket_Kind } from 'livekit-client';
@@ -37,9 +39,12 @@ import {
   Check,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { buildJoinLink } from '@/lib/join-link';
 
 interface MeetingControlsProps {
   meetingId: string;
+  /** Token do convite. Ausente para convidado — que não distribui convite. */
+  joinToken?: string | null;
   isHost: boolean;
   onLeave: () => void;
   showTranscript?: boolean;
@@ -54,6 +59,7 @@ interface MeetingControlsProps {
 
 export function MeetingControls({
   meetingId,
+  joinToken,
   isHost,
   onLeave,
   showTranscript,
@@ -93,7 +99,7 @@ export function MeetingControls({
 
   const togglePiP = async () => {
     try {
-      const videoEl = document.querySelector('video[data-lk-source="camera"]') as HTMLVideoElement;
+      const videoEl = document.querySelector('vídeo[data-lk-source="camera"]') as HTMLVideoElement;
       if (videoEl) {
         if (document.pictureInPictureElement) {
           await document.exitPictureInPicture();
@@ -135,13 +141,13 @@ export function MeetingControls({
   const switchAudioDevice = async (deviceId: string) => {
     await localParticipant.setMicrophoneEnabled(true, {
       deviceId: { exact: deviceId },
-    } as any);
+    } satisfies AudioCaptureOptions);
   };
 
   const switchVideoDevice = async (deviceId: string) => {
     await localParticipant.setCameraEnabled(true, {
       deviceId: { exact: deviceId },
-    } as any);
+    } satisfies VideoCaptureOptions);
   };
 
   const handleLeave = () => {
@@ -156,7 +162,11 @@ export function MeetingControls({
 
     // Stop recording if active
     if (isRecording && onToggleRecording) {
-      try { await onToggleRecording(); } catch {}
+      try {
+      await onToggleRecording();
+    } catch {
+      // O erro já é exibido por quem passou onToggleRecording.
+    }
     }
 
     // Call server-side end-meeting: closes room, generates summary + insights
@@ -242,7 +252,8 @@ export function MeetingControls({
               size="icon"
               className="h-10 w-10 rounded-full"
               onClick={() => {
-                const joinUrl = `${window.location.origin}/join/${meetingId}`;
+                const joinUrl = buildJoinLink(meetingId, joinToken);
+                if (!joinUrl) return;
                 navigator.clipboard.writeText(joinUrl);
                 setLinkCopied(true);
                 setTimeout(() => setLinkCopied(false), 2000);
@@ -271,7 +282,7 @@ export function MeetingControls({
             active={!!isRecording}
             onClick={onToggleRecording}
             icon={Circle}
-            tooltip={isRecording ? 'Parar gravacao' : 'Iniciar gravacao'}
+            tooltip={isRecording ? 'Parar gravação' : 'Iniciar gravação'}
             destructive={!!isRecording}
             loading={recordingLoading}
             fillIcon={!!isRecording}
@@ -286,7 +297,7 @@ export function MeetingControls({
             active={!!showTranscript}
             onClick={onToggleTranscript}
             icon={showTranscript ? MessageSquare : MessageSquareOff}
-            tooltip={showTranscript ? 'Ocultar transcricao' : 'Mostrar transcricao'}
+            tooltip={showTranscript ? 'Ocultar transcrição' : 'Mostrar transcrição'}
             highlight={!!showTranscript}
           />
         )}
@@ -327,7 +338,7 @@ export function MeetingControls({
               <PhoneOff className="w-5 h-5" />
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Sair da reuniao</TooltipContent>
+          <TooltipContent>Sair da reunião</TooltipContent>
         </Tooltip>
 
         {isHost && (
@@ -338,7 +349,7 @@ export function MeetingControls({
                 {isEnding ? 'Encerrando...' : 'Encerrar'}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Encerrar reuniao para todos</TooltipContent>
+            <TooltipContent>Encerrar reunião para todos</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -363,7 +374,7 @@ function ControlButton({
 }: {
   active: boolean;
   onClick: () => void;
-  icon: any;
+  icon: LucideIcon;
   tooltip: string;
   destructive?: boolean;
   highlight?: boolean;

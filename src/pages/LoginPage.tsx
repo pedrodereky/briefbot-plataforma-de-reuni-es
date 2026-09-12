@@ -125,7 +125,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="voce@empresa.com"
+                  placeholder="você@empresa.com"
                   required
                   className="h-11"
                 />
@@ -137,7 +137,7 @@ export default function LoginPage() {
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Minimo 6 caracteres"
+                  placeholder="Mínimo 6 caracteres"
                   minLength={6}
                   required
                   className="h-11"
@@ -152,7 +152,7 @@ export default function LoginPage() {
             <div className="mt-5 text-center text-sm">
               {mode === 'login' ? (
                 <p className="text-muted-foreground">
-                  Nao tem conta?{' '}
+                  Não tem conta?{' '}
                   <button onClick={() => setMode('register')} className="font-medium text-primary hover:underline">
                     Criar conta
                   </button>

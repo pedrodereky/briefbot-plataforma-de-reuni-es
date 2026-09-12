@@ -1,10 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { requireMeetingOwner } from "../_shared/auth.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-};
 
 function mdToMrkdwn(md: string): string {
   return md
@@ -19,16 +17,15 @@ function mdToMrkdwn(md: string): string {
 }
 
 serve(async (req) => {
-  if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
-  }
+  const preflight = handlePreflight(req);
+  if (preflight) return preflight;
 
   try {
     const { briefing_id } = await req.json();
     if (!briefing_id) {
       return new Response(JSON.stringify({ error: "briefing_id is required" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -47,7 +44,7 @@ serve(async (req) => {
     if (bErr || !briefing) {
       return new Response(JSON.stringify({ error: "Briefing not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -58,10 +55,15 @@ serve(async (req) => {
       .eq("id", briefing.meeting_id)
       .single();
 
+    // Autorização (auditoria P0 item 2): sem isto, qualquer um que soubesse um
+    // briefing_id disparava mensagem no Slack da empresa de outro usuário.
+    const autorizacao = await requireMeetingOwner(req, supabase, briefing.meeting_id);
+    if (!autorizacao.ok) return autorizacao.response;
+
     if (mErr || !meeting) {
       return new Response(JSON.stringify({ error: "Meeting not found" }), {
         status: 404,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -75,14 +77,14 @@ serve(async (req) => {
     if (!settings?.slack_webhook_url) {
       return new Response(JSON.stringify({ error: "Slack webhook URL not configured" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
     if (settings.slack_enabled === false) {
       return new Response(JSON.stringify({ error: "Slack is disabled" }), {
         status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -149,7 +151,7 @@ serve(async (req) => {
       console.error("Slack webhook error:", slackRes.status, errText);
       return new Response(JSON.stringify({ error: "Failed to send Slack message" }), {
         status: 502,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        headers: { ...corsHeaders(req), "Content-Type": "application/json" },
       });
     }
 
@@ -165,13 +167,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { headers: { ...corsHeaders(req), "Content-Type": "application/json" } }
     );
   } catch (err) {
     console.error("Unexpected error:", err);
     return new Response(JSON.stringify({ error: (err as Error).message ?? "Internal server error" }), {
       status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      headers: { ...corsHeaders(req), "Content-Type": "application/json" },
     });
   }
 });

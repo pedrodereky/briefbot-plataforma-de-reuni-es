@@ -70,7 +70,7 @@ export default function CalendarPage() {
             onOpenChange={setCreateOpen}
             trigger={
               <Button size="sm" className="gap-1">
-                <Plus className="h-4 w-4" /> Nova Reuniao
+                <Plus className="h-4 w-4" /> Nova Reunião
               </Button>
             }
           />
@@ -92,7 +92,7 @@ export default function CalendarPage() {
         </div>
         <div className="flex rounded-lg border overflow-hidden">
           <Button variant={view === 'week' ? 'default' : 'ghost'} size="sm" onClick={() => setView('week')} className="rounded-none">Semana</Button>
-          <Button variant={view === 'month' ? 'default' : 'ghost'} size="sm" onClick={() => setView('month')} className="rounded-none">Mes</Button>
+          <Button variant={view === 'month' ? 'default' : 'ghost'} size="sm" onClick={() => setView('month')} className="rounded-none">Mês</Button>
         </div>
       </div>
 

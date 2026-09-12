@@ -1,3 +1,4 @@
+import type { Tables } from '@/integrations/supabase/types';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -36,7 +37,7 @@ export function useRealtimeMeetingStatus(meetingId: string | undefined) {
           filter: `id=eq.${meetingId}`,
         },
         (payload) => {
-          const newStatus = (payload.new as any).meeting_status;
+          const newStatus = (payload.new as Tables<'meetings'>).meeting_status;
           if (newStatus) {
             setStatus(newStatus);
           }

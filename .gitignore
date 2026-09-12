@@ -22,3 +22,15 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Variáveis de ambiente
+# .env é versionado de propósito: contém apenas valores publishable, e o build
+# da Lovable depende dele. Qualquer valor sensível vai para .env.local, que o
+# Vite carrega por cima e o git ignora.
+.env.local
+.env.*.local
+
+# Testes
+coverage
+playwright-report
+test-results

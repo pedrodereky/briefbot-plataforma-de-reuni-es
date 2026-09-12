@@ -1,1 +1,97 @@
 project_id = "ardhtavnpywjhzscoajt"
+
+# =============================================================================
+# verify_jwt por função
+# =============================================================================
+# Antes desta configuração o arquivo tinha apenas `project_id`, deixando todas
+# as 17 funções no default implícito do gateway. Declarar explicitamente evita
+# dois modos de falha opostos: função pública sendo bloqueada pelo gateway, e
+# função sensível exposta sem nenhuma barreira.
+#
+# `verify_jwt = false` NÃO significa "sem autenticação": significa que o
+# gateway não bloqueia a requisição e a própria função decide. Onde está false,
+# o comentário explica por quê e qual item da Fase 1 fecha a lacuna.
+#
+# Contexto que determina estes valores: o projeto usa o formato novo de chave
+# (`sb_publishable_`) e `src/integrations/supabase/client.ts` REMOVE o header
+# `Authorization` para chaves desse formato. Logo, um convidado não autenticado
+# chega às functions SEM header nenhum — com `verify_jwt = true` o gateway
+# responde 401 antes da função rodar.
+
+# ─── Precisam aceitar requisição sem JWT ─────────────────────────────────────
+
+# Assinatura do LiveKit viaja no header Authorization e é verificada por
+# WebhookReceiver.receive(). Com verify_jwt=true o gateway rejeita o webhook
+# antes da função executar — é a causa de `meeting_status` nunca sincronizar.
+# (auditoria P0 item 4)
+[functions.livekit-webhook]
+verify_jwt = false
+
+# Rota pública /join/:id — convidado sem conta precisa obter o token da sala.
+# A função valida o JWT internamente quando ele existe.
+# ⚠️ Hoje qualquer um com o UUID da reunião entra. Fase 1 item 3 adiciona
+#    join_token com expiração e checagem de meeting_status.
+[functions.livekit-token]
+verify_jwt = false
+
+# Transcrição do convidado na rota /join/:id.
+# ⚠️ CRÍTICO: esta função devolve a API key do Deepgram em texto puro
+#    (auditoria P0 item 1). Enquanto isso não for corrigido, verify_jwt=false
+#    torna a chave alcançável sem autenticação alguma. Fase 1 item 1 troca a
+#    chave por token temporário de escopo reduzido — e só então esta linha
+#    deixa de ser um risco aceito conscientemente.
+[functions.deepgram-token]
+verify_jwt = false
+
+# Invocadas server-to-server (pg_cron / outra function) com a service key.
+# No formato novo a service key é opaca (`sb_secret_`), não um JWT, então
+# verify_jwt=true bloquearia o cron silenciosamente.
+# ⚠️ Fase 1 substitui isto por header com CRON_SECRET dedicado.
+[functions.cron-check-meetings]
+verify_jwt = false
+
+[functions.send-reminder]
+verify_jwt = false
+
+# ─── Exigem JWT válido no gateway ────────────────────────────────────────────
+# Para as funções que ainda não checam o dono da reunião internamente
+# (auditoria P0 item 2), isto é mitigação parcial: barra o anônimo, mas não
+# impede um usuário autenticado de agir sobre reunião alheia. O helper
+# requireMeetingOwner da Fase 1 é o que fecha de fato.
+
+[functions.end-meeting]
+verify_jwt = true
+
+[functions.manage-recording]
+verify_jwt = true
+
+[functions.generate-briefing]
+verify_jwt = true
+
+[functions.generate-summary]
+verify_jwt = true
+
+[functions.generate-insights]
+verify_jwt = true
+
+[functions.detect-action-items]
+verify_jwt = true
+
+[functions.send-invite]
+verify_jwt = true
+
+[functions.send-slack]
+verify_jwt = true
+
+# Já validam o JWT internamente com getClaims().
+[functions.store-api-key]
+verify_jwt = true
+
+[functions.delete-api-key]
+verify_jwt = true
+
+[functions.validate-api-key]
+verify_jwt = true
+
+[functions.ensure-auth-trigger]
+verify_jwt = true
