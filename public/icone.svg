@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="BriefBot">
+  <title>BriefBot</title>
+  <!--
+    Ícone do BriefBot: a letra dentro do balão.
+
+    O balão é mais alto que o traço usado na interface de propósito — num balão
+    de 15 unidades de miolo o B perde a haste vertical e vira um borrão a 16px.
+
+    A letra é VAZADA por máscara, não pintada de branco: a cor da aba aparece
+    através dela, e o ícone funciona sobre fundo claro ou escuro sem precisar de
+    duas versões. (Vazar por fill-rule não serve aqui: o buraco seguiria o
+    contorno externo do B, não o traço dele.)
+
+    A cor acompanha o tema do sistema, como o resto do app. Onde o navegador não
+    aplica media query dentro de SVG, fica valendo o teal do tema claro — o mais
+    escuro dos dois, e o que sobrevive melhor sobre branco.
+  -->
+  <style>
+    .marca { fill: #0d7f91; }
+    @media (prefers-color-scheme: dark) {
+      .marca { fill: #4fc3d4; }
+    }
+  </style>
+  <mask id="letra">
+    <rect width="32" height="32" fill="#fff"/>
+    <path d="M12.8 8.5v11M12.8 8.5h3.6a2.75 2.75 0 0 1 0 5.5h-3.6M12.8 14h4.4a2.75 2.75 0 0 1 0 5.5h-4.4"
+          fill="none" stroke="#000" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+  </mask>
+  <path class="marca" mask="url(#letra)" d="M4 3h24v20H12l-8 7z"/>
+</svg>

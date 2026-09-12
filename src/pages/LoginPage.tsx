@@ -6,26 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-
-/** Balão de fala com as linhas do briefing dentro. */
-function MarcaBriefBot({ className }: { className?: string }) {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className={className}
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 5h16v11H8l-4 4z" />
-      <path d="M8 9h8" />
-      <path d="M8 12.5h5" />
-    </svg>
-  );
-}
+import { MarcaBriefBot } from '@/components/MarcaBriefBot';
 
 function LinhaDoCopiloto({
   hora,
