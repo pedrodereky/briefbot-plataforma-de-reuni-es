@@ -89,9 +89,41 @@ título. Medido, não estimado. Agora o conteúdo recebe os 390px inteiros.
 As linhas de reunião do painel empilham abaixo de `sm` — horário e entrega da
 IA dividem a primeira linha, o título fica com a largura toda embaixo.
 
-### O que ainda não foi aplicado
+### Barra de abas inferior
 
-As adaptações desenhadas para o celular que vão além de caber na tela: barra de
-abas inferior, cartão único da próxima reunião no painel, copiloto como folha
-que sobe na sala, ação principal da ata fixa acima das abas. Estão nos mockups
-aprovados.
+Quatro destinos no polegar — Início, Reuniões, Itens, Agenda — e "Mais", que
+abre a gaveta com Contatos, Gravações e Configurações. A gaveta continua
+existindo; deixou de ser o único caminho, e o hambúrguer do cabeçalho saiu.
+
+O desenho aprovado trazia uma aba **Copiloto**. Ela não foi implementada porque
+não existe tela de copiloto no produto: o copiloto vive dentro da reunião e da
+ata. Criar a aba exigiria inventar uma rota. O lugar ficou com Agenda.
+
+### Próxima reunião como cartão
+
+No celular a pergunta é "e agora?", e a resposta estava diluída numa linha de
+lista igual às outras. O cartão (`sm:hidden`) leva o topo do painel, com Entrar
+e Ver briefing em alvo de toque cheio. No desktop ele some: lá a lista inteira
+cabe e repetir a primeira linha seria ruído.
+
+### Painéis da sala como folha
+
+`PainelDaSala` é a casca de transcrição e participantes: coluna de 320px à
+direita no desktop, folha que ocupa 55% da altura no celular. A coluna de 320px
+deixava 70px de vídeo num telefone de 390px — escolher entre ver quem fala e ver
+o que foi dito.
+
+A folha **empilha dentro da área de vídeo**, não flutua por cima da tela. Foi
+uma correção durante a implementação: em `fixed`, ela cobria os controles da
+chamada, e o usuário ficava com a transcrição aberta e sem botão de sair.
+
+### Ata no celular
+
+As seis abas não cabem em 390px, então a faixa rola na horizontal. A ação
+principal fica fixa acima da barra de abas.
+
+O desenho trazia "Enviar ata" nessa barra. Essa ação **não existe no produto**:
+a ata é enviada sozinha pela edge function quando é gerada, e não há botão de
+envio manual em lugar nenhum. Em vez de inventar a função, a barra carrega a
+ação que existe e é a mais provável no telefone — entrar na sala — e some
+quando não há o que fazer (reunião encerrada ou cancelada).
