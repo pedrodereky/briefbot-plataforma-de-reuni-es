@@ -11,6 +11,7 @@ import { useOpenActionItems } from '@/hooks/useOpenActionItems';
 import { useAuth } from '@/contexts/AuthProvider';
 import { CreateMeetingDialog } from '@/components/CreateMeetingDialog';
 import { cn } from '@/lib/utils';
+import { MarcaBriefBot } from '@/components/MarcaBriefBot';
 import {
   Tooltip,
   TooltipContent,
@@ -107,7 +108,7 @@ export function AppSidebar() {
           )}
         >
           <div className="flex items-center gap-2.5">
-            <MarcaBriefBot />
+            <MarcaBriefBot className="h-[17px] w-[17px] text-primary" />
             {!collapsed && (
               <span className="text-[14.5px] font-semibold tracking-[-0.01em] text-sidebar-foreground">
                 BriefBot
@@ -221,26 +222,6 @@ export function AppSidebar() {
           </div>
       </aside>
     </>
-  );
-}
-
-/** Balão de fala com as linhas do briefing dentro. */
-function MarcaBriefBot() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      className="h-[17px] w-[17px] shrink-0 text-primary"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M4 5h16v11H8l-4 4z" />
-      <path d="M8 9h8" />
-      <path d="M8 12.5h5" />
-    </svg>
   );
 }
 
