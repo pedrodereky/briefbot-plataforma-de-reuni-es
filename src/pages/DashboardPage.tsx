@@ -121,6 +121,66 @@ function LinhaDeReuniao({ meeting, mostrarDia }: { meeting: Meeting; mostrarDia?
   );
 }
 
+/** Quanto falta, em palavras curtas. Passou da hora, diz que começou. */
+function faltam(iso: string): string {
+  const minutos = Math.round((new Date(iso).getTime() - Date.now()) / 60000);
+  if (minutos < -90) return 'já passou';
+  if (minutos < 0) return 'começou';
+  if (minutos < 1) return 'agora';
+  if (minutos < 60) return `em ${minutos} min`;
+  const horas = Math.round(minutos / 60);
+  if (horas < 24) return `em ${horas} h`;
+  return 'depois';
+}
+
+/**
+ * A próxima reunião como cartão, só no celular.
+ *
+ * Na tela do telefone a pergunta é "e agora?", e a resposta estava diluída
+ * numa linha de lista igual a todas as outras. Aqui ela ganha o topo, com a
+ * ação principal em alvo de toque cheio. No desktop o cartão some: lá a lista
+ * inteira cabe de uma vez e repetir a primeira linha seria ruído.
+ */
+function ProximaReuniao({ meeting }: { meeting: Meeting }) {
+  const navigate = useNavigate();
+  const participantes = Array.isArray(meeting.attendees) ? (meeting.attendees as string[]) : [];
+  const nomes = participantes.map((e) => e.split('@')[0]);
+  const aoVivo = meeting.meeting_status === 'live';
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-primary/40 bg-card p-4 sm:hidden">
+      <div className="flex items-center justify-between gap-3">
+        <span className="font-mono text-[11px] uppercase tracking-[0.05em] text-primary">
+          {aoVivo ? 'acontecendo agora' : faltam(meeting.starts_at)}
+        </span>
+        <EntregaDaIA meeting={meeting} />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <span className="text-base font-semibold leading-snug text-foreground">{meeting.title}</span>
+        <span className="text-[13px] text-muted-foreground">
+          {hora(meeting.starts_at)}
+          {nomes.length > 0 && ` · ${nomes.slice(0, 3).join(', ')}`}
+          {nomes.length > 3 && ` +${nomes.length - 3}`}
+        </span>
+      </div>
+
+      <div className="mt-0.5 flex gap-2">
+        <Button className="h-11 flex-1" onClick={() => navigate(`/meetings/${meeting.id}/room`)}>
+          Entrar
+        </Button>
+        <Button
+          variant="outline"
+          className="h-11 flex-1"
+          onClick={() => navigate(`/meetings/${meeting.id}`)}
+        >
+          Ver briefing
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function Secao({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <section className="flex flex-col gap-3.5">
@@ -230,6 +290,8 @@ export default function DashboardPage() {
         </EmptyState>
       ) : (
         <PageBody className="flex flex-col gap-8">
+          {!isLoading && upcoming[0] && <ProximaReuniao meeting={upcoming[0]} />}
+
           <Secao titulo="Próximas reuniões">
             {isLoading ? (
               <ListSkeleton linhas={3} />

@@ -239,16 +239,17 @@ export default function MeetingRoomPage() {
     >
       <RoomAudioRenderer />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <VideoGrid />
 
-        {showParticipants && <ParticipantList />}
+        {showParticipants && <ParticipantList onFechar={() => setShowParticipants(false)} />}
 
         {showTranscript && (
           <TranscriptPanel
             transcripts={transcripts}
             interimText={interimText}
             interimSpeaker={connection.participant_name}
+            onFechar={() => setShowTranscript(false)}
           />
         )}
       </div>

@@ -183,7 +183,7 @@ export default function JoinMeetingPage() {
     >
       <RoomAudioRenderer />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex flex-1 flex-col overflow-hidden lg:flex-row">
         <VideoGrid />
 
         {showTranscript && (
@@ -191,6 +191,7 @@ export default function JoinMeetingPage() {
             transcripts={transcripts}
             interimText={interimText}
             interimSpeaker={connection.participant_name}
+            onFechar={() => setShowTranscript(false)}
           />
         )}
       </div>

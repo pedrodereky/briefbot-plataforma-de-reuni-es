@@ -882,7 +882,7 @@ export default function MeetingDetailPage() {
       <MeetingHeader meeting={meeting} />
 
       <Tabs defaultValue={abaInicial}>
-        <TabsList className="h-auto w-full justify-start gap-5 rounded-none border-b border-border bg-transparent px-6 pb-0 pt-0 lg:px-7">
+        <TabsList className="h-auto w-full justify-start gap-5 overflow-x-auto whitespace-nowrap rounded-none border-b border-border bg-transparent px-6 pb-0 pt-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden lg:px-7">
           <AbaDetalhe valor="briefing">Briefing</AbaDetalhe>
           <AbaDetalhe valor="summary">Ata</AbaDetalhe>
           <AbaDetalhe valor="actions">Action Items</AbaDetalhe>
@@ -891,30 +891,62 @@ export default function MeetingDetailPage() {
           <AbaDetalhe valor="recording">Gravação</AbaDetalhe>
         </TabsList>
 
-        <TabsContent value="briefing" className="px-6 py-6 lg:px-7">
+        <TabsContent value="briefing" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <BriefingTab meeting={meeting} briefing={preBriefing} />
         </TabsContent>
 
-        <TabsContent value="summary" className="px-6 py-6 lg:px-7">
+        <TabsContent value="summary" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <SummaryTab meeting={meeting} summary={postBriefing} />
         </TabsContent>
 
-        <TabsContent value="actions" className="px-6 py-6 lg:px-7">
+        <TabsContent value="actions" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <ActionItemsTab meetingId={meeting.id} />
         </TabsContent>
 
-        <TabsContent value="transcript" className="px-6 py-6 lg:px-7">
+        <TabsContent value="transcript" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <TranscriptTab meetingId={meeting.id} />
         </TabsContent>
 
-        <TabsContent value="insights" className="px-6 py-6 lg:px-7">
+        <TabsContent value="insights" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <InsightsTab meeting={meeting} />
         </TabsContent>
 
-        <TabsContent value="recording" className="px-6 py-6 lg:px-7">
+        <TabsContent value="recording" className="px-6 pb-24 pt-6 lg:px-7 lg:pb-6">
           <RecordingTab meetingId={meeting.id} />
         </TabsContent>
       </Tabs>
+
+      <AcaoFixaNoCelular meeting={meeting} />
     </>
+  );
+}
+
+/**
+ * Ação principal fixa acima da barra de abas, só no celular.
+ *
+ * O desenho aprovado trazia "Enviar ata" aqui. Essa ação não existe no
+ * produto: a ata é enviada sozinha pela edge function quando é gerada, e não
+ * há botão de envio manual em lugar nenhum. Em vez de inventar a função, a
+ * barra carrega a ação que de fato existe e é a mais provável no telefone —
+ * entrar na sala. Quando não há nada a fazer (reunião encerrada, cancelada),
+ * ela não aparece, em vez de ocupar a tela com um botão inerte.
+ */
+function AcaoFixaNoCelular({ meeting }: { meeting: Meeting }) {
+  const navigate = useNavigate();
+  const encerrada = meeting.meeting_status === 'ended' || meeting.meeting_status === 'cancelled';
+  if (encerrada) return null;
+
+  const aoVivo = meeting.meeting_status === 'live';
+
+  return (
+    <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-20 border-t border-border bg-card px-5 py-3 lg:hidden">
+      <Button
+        className="h-11 w-full text-[15px] font-semibold"
+        onClick={() => navigate(`/meetings/${meeting.id}/room`)}
+      >
+        <Video className="mr-2 h-4 w-4" />
+        {aoVivo ? 'Entrar na reunião' : 'Iniciar reunião'}
+      </Button>
+    </div>
   );
 }

@@ -1,19 +1,17 @@
 import { useParticipants } from '@livekit/components-react';
 import { Badge } from '@/components/ui/badge';
 import { Mic, MicOff, Video, VideoOff, Users } from 'lucide-react';
+import { PainelDaSala } from './PainelDaSala';
 
-export function ParticipantList() {
+export function ParticipantList({ onFechar }: { onFechar?: () => void }) {
   const participants = useParticipants();
 
   return (
-    <div className="w-[320px] border-l bg-card flex flex-col h-full">
-      <div className="p-3 border-b flex items-center gap-2">
-        <Users className="w-4 h-4" />
-        <span className="text-sm font-medium">
-          Participantes ({participants.length})
-        </span>
-      </div>
-
+    <PainelDaSala
+      titulo={`Participantes (${participants.length})`}
+      icone={Users}
+      onFechar={onFechar}
+    >
       <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {participants.map((p) => (
           <div
@@ -49,6 +47,6 @@ export function ParticipantList() {
           </div>
         ))}
       </div>
-    </div>
+    </PainelDaSala>
   );
 }
