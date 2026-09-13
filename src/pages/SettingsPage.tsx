@@ -28,6 +28,7 @@ import { cn } from '@/lib/utils';
 import { AppearanceSection } from '@/components/AppearanceSection';
 import { PageHeader, PageBody } from '@/components/PageHeader';
 import { TeamSection } from '@/components/TeamSection';
+import { useMinhaOrganizacao } from '@/hooks/useMinhaOrganizacao';
 
 type UserSettings = Tables<'user_settings'>;
 
@@ -200,6 +201,9 @@ type RegistryRow = {
 function ApiKeysSection({ settings: _settings, userId }: { settings: UserSettings | null; userId?: string }) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { data: equipe } = useMinhaOrganizacao();
+  const souDono = equipe?.meu_papel === 'owner';
+  const donoDaOrg = equipe?.membros.find((m) => m.papel === 'owner');
 
   const { data: registry = [], isLoading } = useQuery({
     queryKey: ['api_keys_registry', userId],
@@ -229,6 +233,22 @@ function ApiKeysSection({ settings: _settings, userId }: { settings: UserSetting
 
   return (
     <div className="space-y-6">
+      {/* Sem este aviso, um membro abre a tela, vê os campos vazios e conclui
+          que está quebrado — quando na verdade a organização já está servida
+          pelas chaves do dono. */}
+      {equipe && !souDono && (
+        <div className="flex items-start gap-2.5 rounded-md border border-border bg-muted/40 p-3">
+          <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+          <p className="text-sm text-muted-foreground">
+            As reuniões desta organização usam as chaves de{' '}
+            <strong className="font-medium text-foreground">
+              {donoDaOrg?.nome ?? donoDaOrg?.email ?? 'quem administra'}
+            </strong>
+            . Você não precisa cadastrar as suas — o que salvar aqui vale só para você.
+          </p>
+        </div>
+      )}
+
       <div className="space-y-1">
         <p className="text-sm text-muted-foreground">
           Gerencie as chaves de integração dos servicos externos. As chaves ficam armazenadas

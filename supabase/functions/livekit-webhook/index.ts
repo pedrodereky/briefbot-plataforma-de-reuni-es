@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { WebhookReceiver } from "npm:livekit-server-sdk@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { contaDasChaves } from "../_shared/chaves.ts";
 
 /**
  * Webhook do LiveKit.
@@ -69,7 +70,7 @@ serve(async (req) => {
 
     const { data: meeting } = await supabase
       .from("meetings")
-      .select("id, user_id, meeting_status, recording_egress_id")
+      .select("id, user_id, org_id, meeting_status, recording_egress_id")
       .eq("livekit_room_name", roomName)
       .maybeSingle();
 
@@ -79,9 +80,12 @@ serve(async (req) => {
     }
 
     // ── Passo 2: verificar a assinatura com as chaves DO DONO ───────────────
+    // As chaves são da organização, representada pelo dono dela.
+    const contaDeChaves = await contaDasChaves(supabase, meeting);
+
     const [keyRes, secretRes] = await Promise.all([
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_key" }),
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_secret" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_key" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_secret" }),
     ]);
 
     const apiKey = (keyRes.data as string | null) || Deno.env.get("LIVEKIT_API_KEY");
