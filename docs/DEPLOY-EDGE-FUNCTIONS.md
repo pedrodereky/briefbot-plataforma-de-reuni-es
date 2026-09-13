@@ -67,13 +67,20 @@ deixa o app num estado inconsistente:
 
 As migrations até a Fase 2 já foram aplicadas em produção.
 
-**Há uma migration NOVA e pesada a aplicar antes deste deploy:**
+**Há uma migration NOVA e pesada a aplicar ANTES deste deploy:**
 `20260913010000_organizacoes_e_equipe.sql`. Ela introduz organizações e
 reescreve as policies de RLS de "dono do registro" para "membro da
 organização". Cada usuário existente vira dono de uma organização própria com
 os dados dele dentro — ninguém perde acesso a nada. Aplicar o código sem ela
 faz a aba Equipe e a criação de usuários falharem; aplicar a migration sem o
 código mantém tudo funcionando, porque `org_id` se preenche sozinho.
+
+A ordem importa por causa das chaves de API: as functions agora resolvem
+Deepgram, LiveKit e Resend pelo DONO da organização, via a RPC
+`dono_da_org`, que é criada por essa migration. Publicar o código antes de
+aplicá-la não quebra nada — o `contaDasChaves` cai no criador da reunião,
+que é o comportamento antigo — mas o compartilhamento de chaves só passa a
+valer depois do SQL.
 
 ---
 
@@ -92,12 +99,13 @@ send-slack             store-api-key         validate-api-key
 
 ### A pasta `_shared/`
 
-`supabase/functions/_shared/` tem quatro arquivos:
+`supabase/functions/_shared/` tem cinco arquivos:
 
-- `auth.ts` — autorização (dono da reunião, service key, convidado por token)
+- `auth.ts` — autorização (membro da organização, service key, convidado por token)
 - `http.ts` — CORS e helpers de resposta
 - `sanitize.ts` — higienização de entrada e comparação em tempo constante
 - `action-items.ts` — interpretação dos action items da IA
+- `chaves.ts` — de quem são as chaves de API da reunião (o dono da organização)
 
 **Toda function importa dela.** Num deploy feito função a função, se essa pasta
 não subir junto, as 18 falham em tempo de execução por import quebrado — um
@@ -174,7 +182,10 @@ lugar nenhum. O resto do app funciona normalmente.
    depende do `join_token` e prova que banco e código estão em sincronia.
 4. **Entrar numa reunião e ver o status virar `live` sozinho** — confirma que o
    webhook do LiveKit chega e é verificado com as chaves certas.
-5. Se `ALLOWED_ORIGINS` foi configurada, confirmar nos logs que o aviso
+5. **Criar um usuário pela aba Equipe, entrar com ele e abrir uma reunião** —
+   é o que prova que as chaves da organização chegam a quem não é dono. Sem a
+   migration aplicada, esse membro vê "Deepgram não configurado".
+6. Se `ALLOWED_ORIGINS` foi configurada, confirmar nos logs que o aviso
    "ALLOWED_ORIGINS não configurada" parou de aparecer.
 
 ---
@@ -207,12 +218,18 @@ As 18 edge functions, TODAS:
   manage-team            send-invite           send-reminder
   send-slack             store-api-key         validate-api-key
 
-ATENÇÃO à pasta supabase/functions/_shared/, com 4 arquivos:
+ATENÇÃO à pasta supabase/functions/_shared/, com 5 arquivos:
 
-  auth.ts           autorização (dono da reunião, service key, convidado)
+  auth.ts           autorização (membro da organização, service key, convidado)
   http.ts           CORS e helpers de resposta
   sanitize.ts       higienização de entrada e comparação em tempo constante
   action-items.ts   interpretação dos action items da IA
+  chaves.ts         de quem são as chaves de API da reunião
+
+chaves.ts é NOVO. Sete functions passaram a importá-lo (deepgram-token,
+end-meeting, livekit-token, livekit-webhook, manage-recording, send-invite,
+send-reminder). Se ele não subir, essas sete quebram por import não
+resolvido.
 
 TODA function importa dela. Num deploy feito função a função, se essa pasta
 não subir junto, as 18 falham em tempo de execução por import quebrado.
@@ -265,4 +282,6 @@ COMO CONFERIR DEPOIS
    depende do join_token e prova que banco e código estão em sincronia.
 4. Entrar numa reunião e ver o status virar "live" sozinho — confirma que o
    webhook do LiveKit chega e é verificado.
+5. Criar um usuário pela aba Equipe, entrar com ele e abrir uma reunião —
+   prova que as chaves da organização chegam a quem não é dono.
 ```
