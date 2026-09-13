@@ -157,6 +157,7 @@ export type Database = {
           meeting_count: number | null
           name: string
           notes: string | null
+          org_id: string
           role: string | null
           user_id: string
         }
@@ -169,6 +170,7 @@ export type Database = {
           meeting_count?: number | null
           name: string
           notes?: string | null
+          org_id?: string
           role?: string | null
           user_id: string
         }
@@ -181,10 +183,19 @@ export type Database = {
           meeting_count?: number | null
           name?: string
           notes?: string | null
+          org_id?: string
           role?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "contacts_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       meeting_transcripts: {
         Row: {
@@ -240,6 +251,7 @@ export type Database = {
           join_token_expires_at: string | null
           livekit_room_name: string | null
           meeting_status: string | null
+          org_id: string
           organizer: string | null
           recording_egress_id: string | null
           recording_ended_at: string | null
@@ -263,6 +275,7 @@ export type Database = {
           join_token_expires_at?: string | null
           livekit_room_name?: string | null
           meeting_status?: string | null
+          org_id?: string
           organizer?: string | null
           recording_egress_id?: string | null
           recording_ended_at?: string | null
@@ -286,6 +299,7 @@ export type Database = {
           join_token_expires_at?: string | null
           livekit_room_name?: string | null
           meeting_status?: string | null
+          org_id?: string
           organizer?: string | null
           recording_egress_id?: string | null
           recording_ended_at?: string | null
@@ -296,6 +310,64 @@ export type Database = {
           summary_sent?: boolean | null
           title?: string
           user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "meetings_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_members: {
+        Row: {
+          created_at: string
+          id: string
+          org_id: string
+          papel: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          org_id: string
+          papel?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          org_id?: string
+          papel?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_members_org_id_fkey"
+            columns: ["org_id"]
+            isOneToOne: false
+            referencedRelation: "organizations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organizations: {
+        Row: {
+          created_at: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          nome?: string
         }
         Relationships: []
       }
@@ -355,12 +427,16 @@ export type Database = {
         Returns: boolean
       }
       disparar_cron_reunioes: { Args: never; Returns: undefined }
+      dono_da_org: { Args: { p_org: string }; Returns: string }
       generate_join_token: { Args: never; Returns: string }
       get_user_secret: {
         Args: { _service: string; _user_id: string }
         Returns: string
       }
       install_auth_trigger: { Args: never; Returns: boolean }
+      org_atual: { Args: never; Returns: string }
+      orgs_do_usuario: { Args: never; Returns: string[] }
+      pode_administrar: { Args: { p_org: string }; Returns: boolean }
       set_secret_validation: {
         Args: { _service: string; _status: string; _user_id: string }
         Returns: undefined
