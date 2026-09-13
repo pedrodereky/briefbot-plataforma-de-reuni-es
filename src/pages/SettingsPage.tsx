@@ -22,11 +22,12 @@ import {
 import {
   Eye, EyeOff, ExternalLink, LogOut, Trash2, Loader2,
   Link as LinkIcon, MessageSquare, Sparkles, User, Key,
-  Video, Mic, Mail, ShieldCheck, AlertTriangle, RefreshCw, Palette,
+  Video, Mic, Mail, ShieldCheck, AlertTriangle, RefreshCw, Palette, Users2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppearanceSection } from '@/components/AppearanceSection';
 import { PageHeader, PageBody } from '@/components/PageHeader';
+import { TeamSection } from '@/components/TeamSection';
 
 type UserSettings = Tables<'user_settings'>;
 
@@ -90,11 +91,12 @@ export default function SettingsPage() {
       <PageHeader titulo="Configurações" />
       <PageBody>
         <Tabs defaultValue="aparencia" className="mx-auto max-w-3xl space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="aparencia" className="gap-1.5"><Palette className="h-4 w-4" /> Aparência</TabsTrigger>
             <TabsTrigger value="api-keys" className="gap-1.5"><Key className="h-4 w-4" /> API Keys</TabsTrigger>
             <TabsTrigger value="integrations" className="gap-1.5"><LinkIcon className="h-4 w-4" /> Integrações</TabsTrigger>
             <TabsTrigger value="prompts" className="gap-1.5"><Sparkles className="h-4 w-4" /> Prompts</TabsTrigger>
+            <TabsTrigger value="equipe" className="gap-1.5"><Users2 className="h-4 w-4" /> Equipe</TabsTrigger>
             <TabsTrigger value="account" className="gap-1.5"><User className="h-4 w-4" /> Conta</TabsTrigger>
           </TabsList>
 
@@ -109,6 +111,9 @@ export default function SettingsPage() {
           </TabsContent>
           <TabsContent value="prompts">
             <PromptsSection settings={settings} userId={user?.id} />
+          </TabsContent>
+          <TabsContent value="equipe">
+            <TeamSection />
           </TabsContent>
           <TabsContent value="account">
             <AccountSection user={user} />
