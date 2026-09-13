@@ -686,6 +686,105 @@ function PromptsSection({ settings, userId }: { settings: UserSettings | null; u
 
 // ─── Account ───────────────────────────────────────────────
 
+/**
+ * Troca de senha de quem já está logado.
+ *
+ * Não pede a senha atual: a sessão aberta é a prova de identidade, e é assim
+ * que o Supabase trata `updateUser`. A confirmação existe por outro motivo —
+ * um erro de digitação aqui tranca o usuário para fora na próxima entrada.
+ */
+function TrocarSenha() {
+  const { definirNovaSenha } = useAuth();
+  const { toast } = useToast();
+  const [aberto, setAberto] = useState(false);
+  const [senha, setSenha] = useState('');
+  const [confirmacao, setConfirmacao] = useState('');
+  const [salvando, setSalvando] = useState(false);
+
+  const MINIMO = 6;
+  const curta = senha.length > 0 && senha.length < MINIMO;
+  const diferentes = confirmacao.length > 0 && senha !== confirmacao;
+  const pode = senha.length >= MINIMO && senha === confirmacao && !salvando;
+
+  const salvar = async () => {
+    setSalvando(true);
+    try {
+      const { error } = await definirNovaSenha(senha);
+      if (error) {
+        toast({ title: 'Não foi possível trocar a senha', description: error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Senha alterada', description: 'Use a nova senha na próxima vez que entrar.' });
+      setSenha('');
+      setConfirmacao('');
+      setAberto(false);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  if (!aberto) {
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="space-y-0.5">
+          <p className="text-sm font-medium text-foreground">Senha</p>
+          <p className="text-sm text-muted-foreground">Trocar a senha desta conta.</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={() => setAberto(true)}>
+          Alterar senha
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <p className="text-sm font-medium text-foreground">Nova senha</p>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="space-y-1.5">
+          <Label htmlFor="senha-nova" className="text-xs">Nova senha</Label>
+          <Input
+            id="senha-nova"
+            type="password"
+            autoComplete="new-password"
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+          />
+          {curta && (
+            <p className="text-xs text-destructive">Mínimo de {MINIMO} caracteres.</p>
+          )}
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="senha-confirma" className="text-xs">Repita a senha</Label>
+          <Input
+            id="senha-confirma"
+            type="password"
+            autoComplete="new-password"
+            value={confirmacao}
+            onChange={(e) => setConfirmacao(e.target.value)}
+          />
+          {diferentes && <p className="text-xs text-destructive">As duas não conferem.</p>}
+        </div>
+      </div>
+
+      <div className="flex gap-2">
+        <Button size="sm" onClick={salvar} disabled={!pode}>
+          {salvando && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          Salvar senha
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => { setAberto(false); setSenha(''); setConfirmacao(''); }}
+        >
+          Cancelar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function AccountSection({ user }: { user: AuthUser | null }) {
   const { signOut } = useAuth();
   const { toast } = useToast();
@@ -701,7 +800,11 @@ function AccountSection({ user }: { user: AuthUser | null }) {
           <p className="text-sm text-muted-foreground">{user?.email}</p>
         </div>
         <Separator />
-        <div className="flex gap-3">
+
+        <TrocarSenha />
+
+        <Separator />
+        <div className="flex flex-wrap gap-3">
           <Button variant="outline" onClick={signOut}>
             <LogOut className="mr-2 h-4 w-4" /> Sair
           </Button>
