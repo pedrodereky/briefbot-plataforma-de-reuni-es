@@ -66,7 +66,10 @@ CREATE SCHEMA IF NOT EXISTS vault;
 CREATE EXTENSION IF NOT EXISTS pgcrypto WITH SCHEMA extensions;
 GRANT USAGE ON SCHEMA public, extensions TO anon, authenticated, service_role;
 CREATE TABLE IF NOT EXISTS auth.users (
-  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(), email text);
+  id uuid PRIMARY KEY DEFAULT extensions.gen_random_uuid(), email text,
+  -- O Supabase real guarda aqui o que vem em options.data no cadastro. O
+  -- trigger de novo usuário lê org_id e papel deste campo.
+  raw_user_meta_data jsonb DEFAULT '{}'::jsonb);
 CREATE OR REPLACE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS
   $f$ SELECT nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $f$;
 CREATE TABLE IF NOT EXISTS vault.secrets (
@@ -143,4 +146,5 @@ PGOPTIONS='--client-min-messages=notice' \
 psql -h "$SOCKET_DIR" -p "$PORT" -U "$SUPERUSER" -d briefbot -v ON_ERROR_STOP=1 \
      -f "$REPO_ROOT/supabase/tests/schema_test.sql" 2>&1 \
   | sed -e 's/^psql:.*NOTICE:  //' -e 's/^NOTICE:  //' \
-  | grep -E '^(ok |FALHOU|ERROR|=| TODOS|--- b)'
+  | sed -e 's/^psql:[^ ]*: *//' \
+  | grep -E '^(ok |FALHOU|ERROR|DETAIL|HINT|CONTEXT|=| TODOS|--- b)'

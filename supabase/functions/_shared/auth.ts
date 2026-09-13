@@ -111,6 +111,26 @@ export async function requireUser(
  * Reunião inexistente devolve 404; reunião de outro dono devolve 403 apenas
  * depois de confirmar que o chamador está autenticado.
  */
+/**
+ * Quem está na mesma organização compartilha os dados dela.
+ *
+ * Consulta com a chave de serviço de propósito: o cliente que chega aqui pode
+ * ser o do usuário, e com RLS ligada ele não enxergaria a filiação de ninguém.
+ */
+async function pertenceAOrganizacao(
+  supabase: SupabaseClient,
+  userId: string,
+  orgId: string,
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("organization_members")
+    .select("user_id")
+    .eq("org_id", orgId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return Boolean(data);
+}
+
 export async function requireMeetingOwner(
   req: Request,
   supabase: SupabaseClient,
@@ -122,7 +142,7 @@ export async function requireMeetingOwner(
 
   const { data: meeting, error } = await supabase
     .from("meetings")
-    .select("id, user_id")
+    .select("id, user_id, org_id")
     .eq("id", meetingId)
     .maybeSingle();
 
@@ -142,8 +162,16 @@ export async function requireMeetingOwner(
     return { ok: false, response: errorResponse(req, "Unauthorized", 401) };
   }
 
-  if (userId !== meeting.user_id) {
-    console.warn("acesso negado a reuniao de outro usuario", {
+  // A reunião é da ORGANIZAÇÃO, não de quem a criou. Autorizar só o criador
+  // faria um colega da mesma equipe levar 403 ao gerar a ata de uma reunião
+  // que ele enxerga na tela — o pior tipo de erro, porque parece bug do
+  // produto. `user_id` segue registrando quem criou.
+  const daEquipe = meeting.org_id
+    ? await pertenceAOrganizacao(supabase, userId, meeting.org_id)
+    : userId === meeting.user_id;
+
+  if (!daEquipe) {
+    console.warn("acesso negado a reuniao de outra organizacao", {
       request_id: requestId(req),
       meeting_id: meetingId,
       caller: userId,

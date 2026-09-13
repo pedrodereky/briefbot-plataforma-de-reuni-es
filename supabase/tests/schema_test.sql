@@ -25,11 +25,14 @@ DECLARE
   v_fim     uuid := '33333333-3333-3333-3333-333333333333';
   v_token   text;
   v_secret  uuid;
+  v_org_dono uuid;
 BEGIN
   -- ── Trigger de novo usuário ───────────────────────────────────────────────
   INSERT INTO auth.users (id, email) VALUES (v_dono, 'dono@exemplo.com');
   PERFORM pg_temp.check('trigger cria user_settings para novo usuário',
     (SELECT count(*) = 1 FROM public.user_settings WHERE user_id = v_dono));
+
+  SELECT org_id INTO v_org_dono FROM public.organization_members WHERE user_id = v_dono;
 
   -- ── Roundtrip do Vault ────────────────────────────────────────────────────
   v_secret := public.store_user_secret(v_dono, 'deepgram_api_key', 'chave-original');
@@ -53,10 +56,10 @@ BEGIN
     AND (SELECT count(*) = 0 FROM vault.secrets));
 
   -- ── Reuniões e join_token ─────────────────────────────────────────────────
-  INSERT INTO public.meetings (id, user_id, calendar_event_id, title, starts_at, meeting_status)
-       VALUES (v_viva, v_dono, 'cal-1', 'Reunião ao vivo', now(), 'live');
-  INSERT INTO public.meetings (id, user_id, calendar_event_id, title, starts_at, meeting_status)
-       VALUES (v_fim,  v_dono, 'cal-2', 'Reunião encerrada', now(), 'ended');
+  INSERT INTO public.meetings (id, user_id, org_id, calendar_event_id, title, starts_at, meeting_status)
+       VALUES (v_viva, v_dono, v_org_dono, 'cal-1', 'Reunião ao vivo', now(), 'live');
+  INSERT INTO public.meetings (id, user_id, org_id, calendar_event_id, title, starts_at, meeting_status)
+       VALUES (v_fim,  v_dono, v_org_dono, 'cal-2', 'Reunião encerrada', now(), 'ended');
 
   SELECT join_token INTO v_token FROM public.meetings WHERE id = v_viva;
 
@@ -103,11 +106,25 @@ BEGIN
     (SELECT count(*) = 0 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef
         AND has_function_privilege('anon', p.oid, 'EXECUTE')));
-  PERFORM pg_temp.check('nenhuma função SECURITY DEFINER executável por authenticated',
+  -- `authenticated` tem uma lista curta e deliberada. As três primeiras são
+  -- chamadas DENTRO de policies de RLS — a expressão da policy roda com os
+  -- privilégios de quem consulta, então sem EXECUTE ninguém lê nada. E as três
+  -- só revelam dados do próprio chamador: em que organizações ele está, se
+  -- administra uma, e qual é a dele. Qualquer função nova fora desta lista
+  -- reprova aqui, que é o ponto.
+  PERFORM pg_temp.check('só a lista deliberada é executável por authenticated',
+    (SELECT coalesce(array_agg(p.proname::text ORDER BY p.proname), '{}')
+       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+      WHERE n.nspname = 'public' AND p.prosecdef
+        AND has_function_privilege('authenticated', p.oid, 'EXECUTE'))
+    = ARRAY['org_atual', 'orgs_do_usuario', 'pode_administrar']);
+
+  PERFORM pg_temp.check('as que leem dado de terceiro seguem fora do alcance',
     (SELECT count(*) = 0 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef
-        AND has_function_privilege('authenticated', p.oid, 'EXECUTE')));
-  PERFORM pg_temp.check('service_role mantém EXECUTE nas SECURITY DEFINER',
+        AND p.proname IN ('get_user_secret', 'store_user_secret', 'delete_user_secret',
+                          'dono_da_org', 'install_auth_trigger', 'handle_new_user')
+        AND has_function_privilege('authenticated', p.oid, 'EXECUTE')));  PERFORM pg_temp.check('service_role mantém EXECUTE nas SECURITY DEFINER',
     (SELECT bool_and(has_function_privilege('service_role', p.oid, 'EXECUTE'))
        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef));
@@ -178,6 +195,95 @@ BEGIN
 
   RAISE NOTICE '--- bloco principal concluído ---';
 END $$;
+
+-- ── Organizações e equipe ───────────────────────────────────────────────────
+DO $$
+DECLARE
+  v_dono     uuid := '11111111-1111-1111-1111-111111111111';  -- criado acima
+  v_colega   uuid := '44444444-4444-4444-4444-444444444444';
+  v_estranho uuid := '55555555-5555-5555-5555-555555555555';
+  v_org_a    uuid;
+  v_org_b    uuid;
+  v_reuniao  uuid;
+BEGIN
+  -- O trigger deve ter dado uma organização ao primeiro usuário, como dono.
+  SELECT org_id INTO v_org_a FROM public.organization_members WHERE user_id = v_dono;
+  PERFORM pg_temp.check('trigger cria organização para novo usuário', v_org_a IS NOT NULL);
+  PERFORM pg_temp.check('quem cadastra vira dono',
+    (SELECT papel FROM public.organization_members WHERE user_id = v_dono) = 'owner');
+
+  -- Convidado por um admin: entra NA organização existente, não numa nova.
+  INSERT INTO auth.users (id, email, raw_user_meta_data)
+       VALUES (v_colega, 'colega@exemplo.com',
+               jsonb_build_object('org_id', v_org_a::text, 'papel', 'member'));
+  PERFORM pg_temp.check('convidado entra na organização indicada',
+    (SELECT org_id FROM public.organization_members WHERE user_id = v_colega) = v_org_a);
+  PERFORM pg_temp.check('convidado não ganha organização própria',
+    (SELECT count(*) = 1 FROM public.organization_members WHERE user_id = v_colega));
+  PERFORM pg_temp.check('papel pedido é respeitado',
+    (SELECT papel FROM public.organization_members WHERE user_id = v_colega) = 'member');
+
+  -- Um estranho, com organização própria.
+  INSERT INTO auth.users (id, email) VALUES (v_estranho, 'estranho@outra.com');
+  SELECT org_id INTO v_org_b FROM public.organization_members WHERE user_id = v_estranho;
+  PERFORM pg_temp.check('estranho fica em outra organização', v_org_b <> v_org_a);
+
+  -- Convite não promove a dono, mesmo pedindo.
+  INSERT INTO auth.users (id, email, raw_user_meta_data)
+       VALUES ('66666666-6666-6666-6666-666666666666', 'espertinho@exemplo.com',
+               jsonb_build_object('org_id', v_org_a::text, 'papel', 'owner'));
+  PERFORM pg_temp.check('convite nunca concede o papel de dono',
+    (SELECT papel FROM public.organization_members
+      WHERE user_id = '66666666-6666-6666-6666-666666666666') = 'member');
+
+  -- Metadado malformado não pode impedir o cadastro.
+  INSERT INTO auth.users (id, email, raw_user_meta_data)
+       VALUES ('77777777-7777-7777-7777-777777777777', 'torto@exemplo.com',
+               jsonb_build_object('org_id', 'nao-e-uuid'));
+  PERFORM pg_temp.check('org_id inválido cai em organização própria',
+    (SELECT count(*) = 1 FROM public.organization_members
+      WHERE user_id = '77777777-7777-7777-7777-777777777777'));
+
+  -- Reunião da organização A, criada pelo dono.
+  INSERT INTO public.meetings (id, user_id, org_id, calendar_event_id, title, starts_at)
+       VALUES (extensions.gen_random_uuid(), v_dono, v_org_a, 'evt-equipe',
+               'Reunião da equipe', now() + interval '1 day')
+    RETURNING id INTO v_reuniao;
+
+  PERFORM pg_temp.check('dono_da_org devolve o dono', public.dono_da_org(v_org_a) = v_dono);
+  PERFORM pg_temp.check('só um dono por organização',
+    (SELECT count(*) = 1 FROM public.organization_members
+      WHERE org_id = v_org_a AND papel = 'owner'));
+END $$;
+
+-- Isolamento e compartilhamento, com RLS de verdade ligada.
+SET ROLE authenticated;
+
+SET request.jwt.claim.sub = '44444444-4444-4444-4444-444444444444';   -- colega
+SELECT pg_temp.check('colega da mesma organização VÊ a reunião',
+  (SELECT count(*) = 1 FROM public.meetings WHERE calendar_event_id = 'evt-equipe'));
+
+SET request.jwt.claim.sub = '55555555-5555-5555-5555-555555555555';   -- estranho
+SELECT pg_temp.check('estranho de outra organização NÃO vê a reunião',
+  (SELECT count(*) = 0 FROM public.meetings WHERE calendar_event_id = 'evt-equipe'));
+
+SELECT pg_temp.check('estranho não enxerga a equipe alheia',
+  (SELECT count(*) = 1 FROM public.organization_members));
+
+RESET ROLE;
+
+-- Quem é autenticado não pode descobrir o dono de uma organização qualquer.
+SET ROLE authenticated;
+DO $$
+BEGIN
+  PERFORM public.dono_da_org('00000000-0000-0000-0000-000000000000');
+  RAISE EXCEPTION 'FALHOU: authenticated executou dono_da_org';
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE 'ok  authenticated NÃO executa dono_da_org';
+END $$;
+RESET ROLE;
+
 
 -- ── Comportamento efetivo do papel anon (fora do bloco, para poder SET ROLE) ─
 SET ROLE anon;
