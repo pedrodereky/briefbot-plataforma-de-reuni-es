@@ -9,6 +9,10 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, name?: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
+  /** Dispara o e-mail de redefinição. */
+  pedirRedefinicaoDeSenha: (email: string) => Promise<{ error: string | null }>;
+  /** Grava a senha nova. Exige uma sessão — a do login ou a do link do e-mail. */
+  definirNovaSenha: (senha: string) => Promise<{ error: string | null }>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -53,8 +57,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
   };
 
+  /**
+   * O link do e-mail precisa apontar para a tela de redefinição, não para a
+   * raiz: chegando na raiz, o usuário entra com a sessão de recuperação e
+   * nunca vê onde digitar a senha nova.
+   */
+  const pedirRedefinicaoDeSenha = async (email: string) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/redefinir-senha`,
+    });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
+  const definirNovaSenha = async (senha: string) => {
+    const { error } = await supabase.auth.updateUser({ password: senha });
+    if (error) return { error: error.message };
+    return { error: null };
+  };
+
   return (
-    <AuthContext.Provider value={{ session, user: session?.user ?? null, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        session,
+        user: session?.user ?? null,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+        pedirRedefinicaoDeSenha,
+        definirNovaSenha,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
