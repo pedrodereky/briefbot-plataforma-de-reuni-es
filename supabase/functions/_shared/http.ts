@@ -40,6 +40,14 @@ export function corsHeaders(req: Request): Record<string, string> {
   } else {
     // Origem desconhecida: devolve a primeira permitida, o que faz o navegador
     // bloquear a resposta no cliente.
+    //
+    // Esse bloqueio é silencioso do lado de quem chama — chega como "falha de
+    // rede", indistinguível de uma function quebrada. Então registra aqui QUAL
+    // origem foi recusada: sem isso, uma lista incompleta (a URL de preview
+    // esquecida, por exemplo) derruba todas as chamadas sem deixar rastro.
+    console.warn(
+      `CORS: origem recusada ${origem ?? '(ausente)'} — permitidas: ${permitidas.join(', ')}`,
+    );
     allowOrigin = permitidas[0];
   }
 
