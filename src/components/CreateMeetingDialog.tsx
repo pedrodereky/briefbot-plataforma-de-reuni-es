@@ -218,7 +218,10 @@ export function CreateMeetingDialog({ open, onOpenChange, trigger }: CreateMeeti
             name: newContactNames[email] || email.split('@')[0],
             email,
           }));
-          await supabase.from('contacts').upsert(newContacts, { onConflict: 'user_id,email', ignoreDuplicates: true });
+          // O contato passou a ser único por ORGANIZAÇÃO, não por pessoa: o
+          // índice contacts_user_email_idx deixou de existir, e apontar para
+          // ele aqui faria o upsert falhar em silêncio.
+          await supabase.from('contacts').upsert(newContacts, { onConflict: 'org_id,email', ignoreDuplicates: true });
           queryClient.invalidateQueries({ queryKey: ['contacts'] });
         }
         // Increment meeting_count for existing contacts

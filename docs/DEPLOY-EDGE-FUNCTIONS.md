@@ -1,6 +1,6 @@
 # Publicação das edge functions
 
-Roteiro para publicar as 17 edge functions. Serve tanto para seguir passo a
+Roteiro para publicar as 18 edge functions. Serve tanto para seguir passo a
 passo quanto para copiar como pedido a quem executa o deploy — o bloco no fim
 está pronto para colar.
 
@@ -65,21 +65,29 @@ deixa o app num estado inconsistente:
 | SQL aplicado, código antigo no ar | A entrada de convidado (`/join/:id`) falha: o banco passou a exigir `join_token` e o código antigo não envia |
 | Código novo no ar, SQL não aplicado | As functions chamam `verify_join_token`, que ainda não existe |
 
-As migrations já foram aplicadas em produção. Falta o par do outro lado.
+As migrations até a Fase 2 já foram aplicadas em produção.
+
+**Há uma migration NOVA e pesada a aplicar antes deste deploy:**
+`20260913010000_organizacoes_e_equipe.sql`. Ela introduz organizações e
+reescreve as policies de RLS de "dono do registro" para "membro da
+organização". Cada usuário existente vira dono de uma organização própria com
+os dados dele dentro — ninguém perde acesso a nada. Aplicar o código sem ela
+faz a aba Equipe e a criação de usuários falharem; aplicar a migration sem o
+código mantém tudo funcionando, porque `org_id` se preenche sozinho.
 
 ---
 
 ## O que publicar
 
-Todas as 17 functions:
+Todas as 18 functions:
 
 ```
 cron-check-meetings    deepgram-token        delete-api-key
 detect-action-items    end-meeting           ensure-auth-trigger
 generate-briefing      generate-insights     generate-summary
 livekit-token          livekit-webhook       manage-recording
-send-invite            send-reminder         send-slack
-store-api-key          validate-api-key
+manage-team            send-invite           send-reminder
+send-slack             store-api-key         validate-api-key
 ```
 
 ### A pasta `_shared/`
@@ -92,7 +100,7 @@ store-api-key          validate-api-key
 - `action-items.ts` — interpretação dos action items da IA
 
 **Toda function importa dela.** Num deploy feito função a função, se essa pasta
-não subir junto, as 17 falham em tempo de execução por import quebrado — um
+não subir junto, as 18 falham em tempo de execução por import quebrado — um
 estado pior do que o anterior ao deploy, e a causa mais provável do sintoma
 descrito acima.
 
@@ -109,7 +117,7 @@ continuar aceitando requisição sem JWT**:
 | `cron-check-meetings` | Chamada server-to-server pelo `pg_cron`, autenticada por `x-cron-secret` |
 | `send-reminder` | Idem |
 
-As outras 12 ficam com `verify_jwt = true`.
+As outras 13 ficam com `verify_jwt = true`.
 
 Se a ferramenta de deploy não ler o `config.toml` automaticamente, use
 `--no-verify-jwt` nessas cinco. **Este erro é silencioso:** o deploy conclui com
@@ -190,14 +198,14 @@ estão quebradas (gerar briefing, gerar ata, token do LiveKit, teste das
 chaves de API).
 
 O QUE PUBLICAR
-As 17 edge functions, TODAS:
+As 18 edge functions, TODAS:
 
   cron-check-meetings    deepgram-token        delete-api-key
   detect-action-items    end-meeting           ensure-auth-trigger
   generate-briefing      generate-insights     generate-summary
   livekit-token          livekit-webhook       manage-recording
-  send-invite            send-reminder         send-slack
-  store-api-key          validate-api-key
+  manage-team            send-invite           send-reminder
+  send-slack             store-api-key         validate-api-key
 
 ATENÇÃO à pasta supabase/functions/_shared/, com 4 arquivos:
 
@@ -207,7 +215,7 @@ ATENÇÃO à pasta supabase/functions/_shared/, com 4 arquivos:
   action-items.ts   interpretação dos action items da IA
 
 TODA function importa dela. Num deploy feito função a função, se essa pasta
-não subir junto, as 17 falham em tempo de execução por import quebrado.
+não subir junto, as 18 falham em tempo de execução por import quebrado.
 Esta é a causa mais provável do problema atual.
 
 CONFIGURAÇÃO DE JWT — NÃO DEIXAR NO PADRÃO
@@ -223,7 +231,7 @@ aceitando requisição sem JWT:
   send-reminder         idem
 
 Se a ferramenta de deploy não ler o config.toml automaticamente, use
---no-verify-jwt nessas cinco. As outras 12 ficam com verify_jwt=true.
+--no-verify-jwt nessas cinco. As outras 13 ficam com verify_jwt=true.
 Este erro é silencioso: o deploy conclui com sucesso e as funções
 simplesmente param de ser alcançadas.
 
