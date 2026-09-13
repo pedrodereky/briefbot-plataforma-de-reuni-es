@@ -33,9 +33,10 @@ function LinhaDoCopiloto({
 }
 
 export default function LoginPage() {
-  const { session, loading, signIn, signUp } = useAuth();
+  const { session, loading, signIn, signUp, pedirRedefinicaoDeSenha } = useAuth();
   const { toast } = useToast();
-  const [mode, setMode] = useState<'login' | 'register'>('login');
+  const [mode, setMode] = useState<'login' | 'register' | 'recuperar'>('login');
+  const [enviado, setEnviado] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
@@ -55,7 +56,8 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) return;
+    if (!email.trim()) return;
+    if (mode !== 'recuperar' && !password.trim()) return;
 
     setSubmitting(true);
     try {
@@ -63,6 +65,15 @@ export default function LoginPage() {
         const { error } = await signIn(email.trim(), password);
         if (error) {
           toast({ title: 'Erro ao entrar', description: error, variant: 'destructive' });
+        }
+      } else if (mode === 'recuperar') {
+        const { error } = await pedirRedefinicaoDeSenha(email.trim());
+        if (error) {
+          toast({ title: 'Não foi possível enviar', description: error, variant: 'destructive' });
+        } else {
+          // Confirmação sem revelar se o e-mail existe: dizer "não temos esse
+          // e-mail" entrega quem é cliente a quem só está testando endereços.
+          setEnviado(true);
         }
       } else {
         const { error } = await signUp(email.trim(), password, name.trim() || undefined);
@@ -82,6 +93,12 @@ export default function LoginPage() {
   };
 
   const entrando = mode === 'login';
+  const recuperando = mode === 'recuperar';
+
+  const titulo = recuperando ? 'Recuperar senha' : entrando ? 'Entrar' : 'Criar conta';
+  const subtitulo = recuperando
+    ? 'Informe o e-mail da conta. Enviamos um link para você escolher uma senha nova.'
+    : 'Suas reuniões, com briefing antes e ata depois.';
 
   return (
     /* Formulário à esquerda, prova à direita: quem entra já viu o que a
@@ -97,15 +114,13 @@ export default function LoginPage() {
         <div className="flex flex-col gap-7">
           <div className="flex flex-col gap-2">
             <h1 className="text-[27px] font-semibold leading-tight tracking-[-0.02em] text-foreground">
-              {entrando ? 'Entrar' : 'Criar conta'}
+              {titulo}
             </h1>
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Suas reuniões, com briefing antes e ata depois.
-            </p>
+            <p className="text-sm leading-relaxed text-muted-foreground">{subtitulo}</p>
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-3.5">
-            {!entrando && (
+            {mode === 'register' && (
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="name" className="text-xs text-foreground">
                   Nome
@@ -136,10 +151,22 @@ export default function LoginPage() {
               />
             </div>
 
+            {!recuperando && (
             <div className="flex flex-col gap-1.5">
-              <Label htmlFor="password" className="text-xs text-foreground">
-                Senha
-              </Label>
+              <div className="flex items-baseline justify-between gap-3">
+                <Label htmlFor="password" className="text-xs text-foreground">
+                  Senha
+                </Label>
+                {entrando && (
+                  <button
+                    type="button"
+                    onClick={() => { setMode('recuperar'); setEnviado(false); }}
+                    className="text-xs text-primary hover:underline"
+                  >
+                    Esqueci a senha
+                  </button>
+                )}
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -152,21 +179,29 @@ export default function LoginPage() {
                 className="h-11"
               />
             </div>
+            )}
+
+            {enviado && recuperando && (
+              <p className="rounded-md border border-primary/30 bg-accent px-3 py-2.5 text-xs leading-relaxed text-accent-foreground">
+                Se existir uma conta com esse e-mail, o link já está a caminho. Confira a caixa de
+                entrada e o spam.
+              </p>
+            )}
 
             <Button type="submit" className="mt-1 h-11 w-full font-semibold" disabled={submitting}>
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              {entrando ? 'Entrar' : 'Criar conta'}
+              {recuperando ? 'Enviar link' : entrando ? 'Entrar' : 'Criar conta'}
             </Button>
           </form>
 
           <p className="text-sm text-muted-foreground">
-            {entrando ? 'Não tem conta? ' : 'Já tem conta? '}
+            {recuperando ? 'Lembrou a senha? ' : entrando ? 'Não tem conta? ' : 'Já tem conta? '}
             <button
               type="button"
-              onClick={() => setMode(entrando ? 'register' : 'login')}
+              onClick={() => { setMode(entrando ? 'register' : 'login'); setEnviado(false); }}
               className="font-medium text-primary hover:underline"
             >
-              {entrando ? 'Criar uma agora' : 'Entrar'}
+              {recuperando ? 'Voltar para entrar' : entrando ? 'Criar uma agora' : 'Entrar'}
             </button>
           </p>
         </div>

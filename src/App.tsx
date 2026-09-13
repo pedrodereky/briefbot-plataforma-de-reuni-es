@@ -27,6 +27,7 @@ const MeetingRoomPage = lazy(() => import("./pages/MeetingRoomPage"));
 const JoinMeetingPage = lazy(() => import("./pages/JoinMeetingPage"));
 const OnboardingPage = lazy(() => import("./pages/OnboardingPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const RedefinirSenhaPage = lazy(() => import("./pages/RedefinirSenhaPage"));
 import { AppHooks } from "./components/AppHooks";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
@@ -53,6 +54,9 @@ const App = () => (
               <Suspense fallback={<CarregandoRota />}>
                 <Routes>
                 <Route path="/login" element={<LoginPage />} />
+                {/* Pública de propósito: o link do e-mail traz uma sessão de
+                    recuperação, e o ProtectedRoute mandaria para o onboarding. */}
+                <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
                 {/* Onboarding wizard (full-screen, no sidebar) */}
                 <Route
                   path="/onboarding"
