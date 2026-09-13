@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { contaDasChaves } from "../_shared/chaves.ts";
 import { requireMeetingOwner } from "../_shared/auth.ts";
 
 
@@ -55,14 +56,18 @@ serve(async (req) => {
     }
 
     // Get user settings — each user has their own Resend key (white-label, in Vault)
+    // Mesma razão do send-reminder: a chave do Resend e o remetente têm de ser
+    // da mesma conta, senão o envio é recusado por domínio não verificado.
+    const contaDeChaves = await contaDasChaves(supabase, meeting);
+
     const { data: settings } = await supabase
       .from("user_settings")
       .select("sender_email, sender_name")
-      .eq("user_id", meeting.user_id)
+      .eq("user_id", contaDeChaves)
       .single();
 
     const { data: vaultKey } = await supabase.rpc("get_user_secret", {
-      _user_id: meeting.user_id,
+      _user_id: contaDeChaves,
       _service: "resend_api_key",
     });
     const resendKey = (vaultKey as string | null) || Deno.env.get("RESEND_API_KEY");

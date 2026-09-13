@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthProvider';
+import { useMinhaOrganizacao, type Papel, type Membro } from '@/hooks/useMinhaOrganizacao';
 import { useToast } from '@/hooks/use-toast';
 import { mensagemDeErro } from '@/lib/errors';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,22 +19,6 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { Loader2, UserPlus, Copy, Check } from 'lucide-react';
-
-type Papel = 'owner' | 'admin' | 'member';
-
-interface Membro {
-  user_id: string;
-  papel: Papel;
-  email: string | null;
-  nome: string | null;
-  criado_em: string;
-}
-
-interface RespostaEquipe {
-  organizacao: { id: string; nome: string } | null;
-  meu_papel: Papel;
-  membros: Membro[];
-}
 
 const ROTULO: Record<Papel, string> = {
   owner: 'Dono',
@@ -68,11 +53,7 @@ export function TeamSection() {
   const [senhaGerada, setSenhaGerada] = useState<{ email: string; senha: string } | null>(null);
   const [copiado, setCopiado] = useState(false);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['equipe'],
-    queryFn: () => chamar<RespostaEquipe>({ acao: 'listar' }),
-    enabled: !!user,
-  });
+  const { data, isLoading, error } = useMinhaOrganizacao();
 
   const recarregar = () => queryClient.invalidateQueries({ queryKey: ['equipe'] });
   const administra = data?.meu_papel === 'owner' || data?.meu_papel === 'admin';

@@ -7,6 +7,7 @@ import {
   S3Upload,
 } from "npm:livekit-server-sdk@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
+import { contaDasChaves } from "../_shared/chaves.ts";
 import { requireMeetingOwner } from "../_shared/auth.ts";
 
 /**
@@ -97,10 +98,13 @@ serve(async (req) => {
       return responder({ error: "Meeting not found" }, 404);
     }
 
+    // As chaves são da organização, representada pelo dono dela.
+    const contaDeChaves = await contaDasChaves(supabase, meeting);
+
     const [keyRes, secretRes, urlRes] = await Promise.all([
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_key" }),
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_secret" }),
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_url" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_key" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_secret" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_url" }),
     ]);
     const apiKey = (keyRes.data as string | null) || Deno.env.get("LIVEKIT_API_KEY");
     const apiSecret = (secretRes.data as string | null) || Deno.env.get("LIVEKIT_API_SECRET");

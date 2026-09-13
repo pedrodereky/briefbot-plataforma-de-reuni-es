@@ -8,7 +8,7 @@
 // Criar usuário exige a chave de serviço (auth.admin), que nunca pode ir ao
 // navegador — é a razão de esta função existir.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflight, jsonResponse, errorResponse, logErro } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
 
