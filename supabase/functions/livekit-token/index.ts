@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { AccessToken } from "https://esm.sh/livekit-server-sdk@2";
 import { handlePreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { contaDasChaves } from "../_shared/chaves.ts";
 import { getAuthenticatedUser, verifyJoinToken, sanitizeGuestName } from "../_shared/auth.ts";
 
 serve(async (req) => {
@@ -53,10 +54,13 @@ serve(async (req) => {
     }
 
     // Get LiveKit credentials from Vault via SECURITY DEFINER RPC
+    // As chaves são da organização, representada pelo dono dela.
+    const contaDeChaves = await contaDasChaves(supabase, meeting);
+
     const [keyRes, secretRes, urlRes] = await Promise.all([
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_key" }),
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_api_secret" }),
-      supabase.rpc("get_user_secret", { _user_id: meeting.user_id, _service: "livekit_url" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_key" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_api_secret" }),
+      supabase.rpc("get_user_secret", { _user_id: contaDeChaves, _service: "livekit_url" }),
     ]);
     const livekitApiKey = (keyRes.data as string | null) || Deno.env.get("LIVEKIT_API_KEY");
     const livekitApiSecret = (secretRes.data as string | null) || Deno.env.get("LIVEKIT_API_SECRET");

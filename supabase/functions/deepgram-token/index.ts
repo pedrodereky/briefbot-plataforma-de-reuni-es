@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { handlePreflight, jsonResponse, errorResponse } from "../_shared/http.ts";
+import { contaDasChavesPorReuniao } from "../_shared/chaves.ts";
 import { requireMeetingAccess } from "../_shared/auth.ts";
 
 /**
@@ -91,10 +92,16 @@ serve(async (req) => {
     const acesso = await requireMeetingAccess(req, supabase, meeting_id, join_token);
     if (!acesso.ok) return acesso.response;
 
-    // A chave mestra é sempre a do DONO da reunião — o convidado transcreve
-    // na conta de quem organizou, como antes.
+    // A chave mestra é a da ORGANIZAÇÃO — o convidado transcreve na conta da
+    // empresa que organizou, e não na de quem por acaso criou a reunião.
+    const contaDeChaves = await contaDasChavesPorReuniao(
+      supabase,
+      meeting_id,
+      acesso.value.ownerId,
+    );
+
     const { data: segredo } = await supabase.rpc("get_user_secret", {
-      _user_id: acesso.value.ownerId,
+      _user_id: contaDeChaves,
       _service: "deepgram_api_key",
     });
 

@@ -3,7 +3,7 @@
 // If missing (typical after a Lovable remix), it reinstalls it via a
 // SECURITY DEFINER RPC. Designed to fail gracefully — never throws to the client.
 
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeaders, handlePreflight } from "../_shared/http.ts";
 import { requireUser } from "../_shared/auth.ts";
 
