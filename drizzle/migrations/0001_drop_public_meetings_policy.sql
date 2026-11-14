@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Public can view meeting by id" ON public.meetings;

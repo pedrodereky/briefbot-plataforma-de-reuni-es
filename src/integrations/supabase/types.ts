@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
+    PostgrestVersion: "14.15"
   }
   public: {
     Tables: {
@@ -429,11 +429,21 @@ export type Database = {
       disparar_cron_reunioes: { Args: never; Returns: undefined }
       dono_da_org: { Args: { p_org: string }; Returns: string }
       generate_join_token: { Args: never; Returns: string }
+      get_join_meeting: {
+        Args: { _meeting_id: string; _token: string }
+        Returns: {
+          id: string
+          meeting_status: string
+          starts_at: string
+          title: string
+        }[]
+      }
       get_user_secret: {
         Args: { _service: string; _user_id: string }
         Returns: string
       }
       install_auth_trigger: { Args: never; Returns: boolean }
+      meeting_is_live: { Args: { _meeting_id: string }; Returns: boolean }
       org_atual: { Args: never; Returns: string }
       orgs_do_usuario: { Args: never; Returns: string[] }
       pode_administrar: { Args: { p_org: string }; Returns: boolean }
