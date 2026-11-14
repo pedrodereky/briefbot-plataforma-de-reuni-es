@@ -302,17 +302,22 @@ RESET ROLE;
 
 
 -- ── Comportamento efetivo do papel anon (fora do bloco, para poder SET ROLE) ─
+-- O token é lido antes, como superusuário: o anônimo não enxerga a coluna.
+SELECT join_token AS token_viva FROM public.meetings
+ WHERE id = '22222222-2222-2222-2222-222222222222' \gset
+
 SET ROLE anon;
 
-SELECT pg_temp.check('anon lê colunas públicas de reunião ao vivo',
-  (SELECT count(*) = 1 FROM (
-     SELECT id, title, starts_at, meeting_status FROM public.meetings
-      WHERE id = '22222222-2222-2222-2222-222222222222') x));
+SELECT pg_temp.check('anon NÃO lê meetings diretamente',
+  NOT has_table_privilege('public.meetings', 'SELECT'));
 
-SELECT pg_temp.check('anon NÃO enxerga reunião encerrada',
-  (SELECT count(*) = 0 FROM (
-     SELECT id FROM public.meetings
-      WHERE id = '33333333-3333-3333-3333-333333333333') x));
+SELECT pg_temp.check('anon obtém a reunião com o token do convite',
+  (SELECT count(*) = 1 FROM public.get_join_meeting(
+     '22222222-2222-2222-2222-222222222222', :'token_viva')));
+
+SELECT pg_temp.check('anon NÃO obtém a reunião sem o token',
+  (SELECT count(*) = 0 FROM public.get_join_meeting(
+     '22222222-2222-2222-2222-222222222222', NULL)));
 
 SELECT pg_temp.check('anon lê transcrição de reunião ao vivo',
   (SELECT count(*) = 1 FROM public.meeting_transcripts
