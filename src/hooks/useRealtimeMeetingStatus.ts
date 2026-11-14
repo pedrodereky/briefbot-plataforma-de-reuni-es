@@ -2,17 +2,40 @@ import type { Tables } from '@/integrations/supabase/types';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useRealtimeMeetingStatus(meetingId: string | undefined, initialStatus?: string) {
-  const [status, setStatus] = useState<string>(initialStatus ?? 'scheduled');
+// Convidados (anônimos) não leem `meetings` nem recebem o Realtime da tabela:
+// para eles o status vem da RPC get_join_meeting, consultada periodicamente.
+const INTERVALO_CONVIDADO_MS = 10_000;
 
-  // Convidados não têm leitura direta da tabela: o status inicial vem da
-  // função segura get_join_meeting e chega de forma assíncrona.
-  useEffect(() => {
-    if (initialStatus) setStatus(initialStatus);
-  }, [initialStatus]);
+export function useRealtimeMeetingStatus(
+  meetingId: string | undefined,
+  { joinToken }: { joinToken?: string | null } = {},
+) {
+  const [status, setStatus] = useState<string>('scheduled');
 
   useEffect(() => {
-    if (!meetingId) return;
+    if (!meetingId || !joinToken) return;
+
+    let ativo = true;
+    const carregar = async () => {
+      const { data, error } = await supabase.rpc('get_join_meeting', {
+        _meeting_id: meetingId,
+        _token: joinToken,
+      });
+      if (!ativo || error) return;
+      const novo = data?.[0]?.meeting_status;
+      if (novo) setStatus(novo);
+    };
+
+    carregar();
+    const timer = setInterval(carregar, INTERVALO_CONVIDADO_MS);
+    return () => {
+      ativo = false;
+      clearInterval(timer);
+    };
+  }, [meetingId, joinToken]);
+
+  useEffect(() => {
+    if (!meetingId || joinToken) return;
 
     // Load initial status
     const loadStatus = async () => {
@@ -54,7 +77,7 @@ export function useRealtimeMeetingStatus(meetingId: string | undefined, initialS
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [meetingId]);
+  }, [meetingId, joinToken]);
 
   return status;
 }
