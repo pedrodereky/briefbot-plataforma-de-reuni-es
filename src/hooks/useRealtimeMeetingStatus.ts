@@ -2,8 +2,14 @@ import type { Tables } from '@/integrations/supabase/types';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
-export function useRealtimeMeetingStatus(meetingId: string | undefined) {
-  const [status, setStatus] = useState<string>('scheduled');
+export function useRealtimeMeetingStatus(meetingId: string | undefined, initialStatus?: string) {
+  const [status, setStatus] = useState<string>(initialStatus ?? 'scheduled');
+
+  // Convidados não têm leitura direta da tabela: o status inicial vem da
+  // função segura get_join_meeting e chega de forma assíncrona.
+  useEffect(() => {
+    if (initialStatus) setStatus(initialStatus);
+  }, [initialStatus]);
 
   useEffect(() => {
     if (!meetingId) return;

@@ -31,23 +31,24 @@ export default function JoinMeetingPage() {
   const [showTranscript, setShowTranscript] = useState(true);
 
   const { connection, isConnecting, error: lkError, fetchToken, disconnect } = useLiveKit(id!);
-  const meetingStatus = useRealtimeMeetingStatus(id);
   const transcripts = useRealtimeTranscripts(id);
 
-  // Fetch meeting info (public - minimal data)
+  // Fetch meeting info via função segura: a tabela meetings não é mais
+  // legível por convidados; o acesso exige o token do link de convite.
   const { data: meeting, isLoading } = useQuery({
-    queryKey: ['meeting-public', id],
+    queryKey: ['meeting-public', id, joinToken],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('meetings')
-        .select('id, title, starts_at, meeting_status')
-        .eq('id', id!)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('get_join_meeting', {
+        _meeting_id: id!,
+        _token: joinToken ?? '',
+      });
       if (error) throw error;
-      return data ?? null;
+      return data?.[0] ?? null;
     },
     enabled: !!id,
   });
+
+  const meetingStatus = useRealtimeMeetingStatus(id, meeting?.meeting_status);
 
   const {
     isTranscribing,
