@@ -102,10 +102,15 @@ BEGIN
   -- Regressão que este teste existe para impedir: `REVOKE ... FROM anon` é
   -- no-op, porque o EXECUTE vem de PUBLIC. Sem revogar de PUBLIC, um anônimo
   -- lê segredo do Vault via POST /rest/v1/rpc/get_user_secret.
-  PERFORM pg_temp.check('nenhuma função SECURITY DEFINER executável por anon',
-    (SELECT count(*) = 0 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+  -- A exceção deliberada são as duas da tela de convite: get_join_meeting só
+  -- responde com o join_token certo, e meeting_is_live devolve um booleano
+  -- sobre um id que o anônimo já precisa conhecer.
+  PERFORM pg_temp.check('só a tela de convite tem SECURITY DEFINER executável por anon',
+    (SELECT coalesce(array_agg(p.proname::text ORDER BY p.proname), '{}')
+       FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef
-        AND has_function_privilege('anon', p.oid, 'EXECUTE')));
+        AND has_function_privilege('anon', p.oid, 'EXECUTE'))
+    = ARRAY['get_join_meeting', 'meeting_is_live']);
   -- `authenticated` tem uma lista curta e deliberada. As três primeiras são
   -- chamadas DENTRO de policies de RLS — a expressão da policy roda com os
   -- privilégios de quem consulta, então sem EXECUTE ninguém lê nada. E as três
@@ -117,7 +122,7 @@ BEGIN
        FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
       WHERE n.nspname = 'public' AND p.prosecdef
         AND has_function_privilege('authenticated', p.oid, 'EXECUTE'))
-    = ARRAY['org_atual', 'orgs_do_usuario', 'pode_administrar']);
+    = ARRAY['get_join_meeting', 'meeting_is_live', 'org_atual', 'orgs_do_usuario', 'pode_administrar']);
 
   PERFORM pg_temp.check('as que leem dado de terceiro seguem fora do alcance',
     (SELECT count(*) = 0 FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
@@ -136,11 +141,22 @@ BEGIN
     NOT has_column_privilege('anon', 'public.meetings', 'user_id', 'SELECT'));
   PERFORM pg_temp.check('anon NÃO tem SELECT em meetings.livekit_room_name',
     NOT has_column_privilege('anon', 'public.meetings', 'livekit_room_name', 'SELECT'));
-  PERFORM pg_temp.check('anon mantém SELECT nas 4 colunas da tela de entrada',
-    has_column_privilege('anon', 'public.meetings', 'id', 'SELECT')
-    AND has_column_privilege('anon', 'public.meetings', 'title', 'SELECT')
-    AND has_column_privilege('anon', 'public.meetings', 'starts_at', 'SELECT')
-    AND has_column_privilege('anon', 'public.meetings', 'meeting_status', 'SELECT'));
+  -- Desde 20261114120000 o anônimo não lê `meetings` diretamente: a tela de
+  -- convite usa get_join_meeting, que exige o token.
+  PERFORM pg_temp.check('anon NÃO lê nenhuma coluna de meetings',
+    NOT has_table_privilege('anon', 'public.meetings', 'SELECT')
+    AND NOT has_column_privilege('anon', 'public.meetings', 'id', 'SELECT')
+    AND NOT has_column_privilege('anon', 'public.meetings', 'title', 'SELECT'));
+  PERFORM pg_temp.check('nenhuma policy de SELECT para anon em meetings',
+    NOT EXISTS (SELECT 1 FROM pg_policies
+                 WHERE schemaname = 'public' AND tablename = 'meetings'
+                   AND 'anon' = ANY (roles) AND cmd IN ('SELECT', 'ALL')));
+  PERFORM pg_temp.check('get_join_meeting devolve a reunião com o token certo',
+    (SELECT count(*) = 1 FROM public.get_join_meeting(v_viva, v_token)));
+  PERFORM pg_temp.check('get_join_meeting não devolve nada com token errado',
+    (SELECT count(*) = 0 FROM public.get_join_meeting(v_viva, 'token-errado')));
+  PERFORM pg_temp.check('get_join_meeting não devolve nada sem token',
+    (SELECT count(*) = 0 FROM public.get_join_meeting(v_viva, NULL)));
 
   -- ── Gravação (Fase 2) ─────────────────────────────────────────────────────
   -- O código escrevia nestas colunas antes de elas existirem, e o erro do
@@ -286,17 +302,22 @@ RESET ROLE;
 
 
 -- ── Comportamento efetivo do papel anon (fora do bloco, para poder SET ROLE) ─
+-- O token é lido antes, como superusuário: o anônimo não enxerga a coluna.
+SELECT join_token AS token_viva FROM public.meetings
+ WHERE id = '22222222-2222-2222-2222-222222222222' \gset
+
 SET ROLE anon;
 
-SELECT pg_temp.check('anon lê colunas públicas de reunião ao vivo',
-  (SELECT count(*) = 1 FROM (
-     SELECT id, title, starts_at, meeting_status FROM public.meetings
-      WHERE id = '22222222-2222-2222-2222-222222222222') x));
+SELECT pg_temp.check('anon NÃO lê meetings diretamente',
+  NOT has_table_privilege('public.meetings', 'SELECT'));
 
-SELECT pg_temp.check('anon NÃO enxerga reunião encerrada',
-  (SELECT count(*) = 0 FROM (
-     SELECT id FROM public.meetings
-      WHERE id = '33333333-3333-3333-3333-333333333333') x));
+SELECT pg_temp.check('anon obtém a reunião com o token do convite',
+  (SELECT count(*) = 1 FROM public.get_join_meeting(
+     '22222222-2222-2222-2222-222222222222', :'token_viva')));
+
+SELECT pg_temp.check('anon NÃO obtém a reunião sem o token',
+  (SELECT count(*) = 0 FROM public.get_join_meeting(
+     '22222222-2222-2222-2222-222222222222', NULL)));
 
 SELECT pg_temp.check('anon lê transcrição de reunião ao vivo',
   (SELECT count(*) = 1 FROM public.meeting_transcripts
