@@ -38,9 +38,10 @@ export default function JoinMeetingPage() {
   const { data: meeting, isLoading } = useQuery({
     queryKey: ['meeting-public', id, joinToken],
     queryFn: async () => {
+      if (!joinToken) return null;
       const { data, error } = await supabase.rpc('get_join_meeting', {
         _meeting_id: id!,
-        _token: joinToken ?? '',
+        _token: joinToken,
       });
       if (error) throw error;
       return data?.[0] ?? null;
@@ -48,7 +49,7 @@ export default function JoinMeetingPage() {
     enabled: !!id,
   });
 
-  const meetingStatus = useRealtimeMeetingStatus(id, meeting?.meeting_status);
+  const meetingStatus = useRealtimeMeetingStatus(id, { joinToken });
 
   const {
     isTranscribing,
