@@ -1,6 +1,6 @@
 # Auditoria de Incompletude — BriefBot
 
-Data: 2026-09-11 · Base: `claude/verificacao-incompletude-estrategia-s47sde`
+Data: 2026-09-11 · Base: `auditoria/verificacao-incompletude`
 
 ## Sumário executivo
 
