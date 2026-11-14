@@ -82,6 +82,25 @@ aplicá-la não quebra nada — o `contaDasChaves` cai no criador da reunião,
 que é o comportamento antigo — mas o compartilhamento de chaves só passa a
 valer depois do SQL.
 
+### Migration `20261114120000_fecha_listagem_anonima_de_reunioes.sql`
+
+Fecha a listagem anônima de reuniões: sem ela, qualquer pessoa com a chave
+pública do site lista os ids das reuniões ativas e lê as transcrições ao vivo.
+
+✅ **Aplicada em produção em 14/11/2026** pelo Lovable, que também removeu a
+policy `Public can view meeting by id` (a versão dessa regra que existia no banco).
+
+Ela forma par com o front (`JoinMeetingPage` e `useRealtimeMeetingStatus`),
+que passa a usar a RPC `get_join_meeting`. **Aplique o SQL e publique o front
+juntos**:
+
+| Estado | Efeito |
+|---|---|
+| SQL aplicado, front antigo no ar | `/join/:id` mostra "Reunião não encontrada" (o anônimo não lê mais `meetings`) |
+| Front novo no ar, SQL não aplicado | `/join/:id` falha: a RPC `get_join_meeting` ainda não existe |
+
+Nenhuma edge function muda.
+
 ---
 
 ## O que publicar
