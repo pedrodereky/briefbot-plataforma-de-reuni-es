@@ -100,6 +100,19 @@ Fecha o acesso anônimo:
   job lê a URL das functions e o `cron_secret` — assim a migration é idêntica
   em todo ambiente e nenhum segredo vira histórico versionado.
 
+## `20261114120000_fecha_listagem_anonima_de_reunioes.sql`
+
+Fecha o que a Fase 1 deixou aberto: com as 4 colunas liberadas, o `anon`
+conseguia **listar** todas as reuniões não encerradas e, com os ids, ler e
+escrever nas transcrições ao vivo.
+
+- `anon` perde de vez o `SELECT` em `meetings` (policy e privilégio);
+- `get_join_meeting(_meeting_id, _token)` devolve os 4 campos da tela de
+  convite só com o `join_token` certo e não expirado;
+- `meeting_is_live(_meeting_id)` substitui o `EXISTS` sobre `meetings` nas
+  policies anônimas de transcrição;
+- remove a policy `Public can view meeting by id`, que existia só em produção.
+
 ## Pendências deliberadas
 
 Um anônimo com o id de uma reunião **ao vivo** ainda lê a transcrição dela. A
@@ -107,4 +120,5 @@ policy foi estreitada (antes era todo o histórico), mas fechar de vez exige
 sessão autenticada para convidado — um JWT curto emitido contra o `join_token`,
 maior do que coube na Fase 1.
 
-`pg_cron` ainda não está versionado aqui — é a Fase 2 (item 14).
+Os `join_token` emitidos antes de `20261114120000` devem ser regerados
+(`UPDATE public.meetings SET join_token = public.generate_join_token();`).
