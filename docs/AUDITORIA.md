@@ -274,8 +274,18 @@ privilégio de coluna — `join_token`, `user_id` e `livekit_room_name` ficaram
 inacessíveis) e a leitura anônima de transcrições passou a valer só para
 reuniões ao vivo, não mais para o histórico inteiro.
 
-**Limite reconhecido:** um anônimo com o id de uma reunião **ao vivo** ainda lê
-a transcrição dela. Fechar isso exige sessão autenticada para convidado (JWT
+**Atualização (nov/2026):** essas 4 colunas ainda deixavam o anônimo **listar**
+todas as reuniões não encerradas, e com os ids ler as transcrições ao vivo. A
+migration `20261114120000_fecha_listagem_anonima_de_reunioes.sql` removeu de vez
+o `SELECT` do `anon` em `meetings`: a tela de convite usa a RPC
+`get_join_meeting`, que só responde com o `join_token` do link, e as policies de
+transcrição usam `meeting_is_live`. O teste de schema cobre os dois pontos. Em
+produção existia também uma policy fora das migrations, `Public can view meeting
+by id`, removida na mesma ocasião; os `join_token` emitidos antes disso devem ser
+regerados.
+
+**Limite reconhecido:** um anônimo com o id de uma reunião **ao vivo** (ou
+seja, quem recebeu o convite) ainda lê a transcrição dela. Fechar isso exige sessão autenticada para convidado (JWT
 curto emitido contra o `join_token`), que é maior que esta fase e está
 registrado como pendência em `supabase/migrations/README.md`.
 
